@@ -1,0 +1,42 @@
+# requirements for mousefinder's development environment
+name: mousefinder
+dependencies:
+    - numpy
+    - scipy
+    - scikit-image
+    - matplotlib
+    - ipython
+    - notebook
+    - psutil
+    # testing
+    - pytest
+    # Linting & format
+    - isort
+    - mypy
+    - pylint
+    # pypi packages
+    - pip
+    - pip:
+      - av
+      - pims
+      - pystatx
+      # format
+      - black
+      # spell checking
+      - codespell
+      # versioning
+      - bumpver
+      # doc builders
+      - mkdocs
+      - mkdocs-material
+      - "mkdocstrings[python]"
+      - mkdocs-jupyter
+      # packaging
+      - pip-tools
+      - build
+      - twine
+      # stubs
+      - types-psutil
+      - scipy-stubs
+
+
