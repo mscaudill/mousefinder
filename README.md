@@ -3,4 +3,4 @@
     style="width:250px;height:auto;"/>
 </h1>
 
-### Python models for tracking Mouse Positions
+### Python models single animal tracking
