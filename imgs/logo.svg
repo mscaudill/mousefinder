@@ -9,6 +9,7 @@
    sodipodi:docname="logo.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
@@ -16,6 +17,30 @@
    xmlns:dc="http://purl.org/dc/elements/1.1/">
   <defs
      id="defs2">
+    <linearGradient
+       id="linearGradient9"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#004eac;stop-opacity:1;"
+         offset="0.44611254"
+         id="stop9" />
+      <stop
+         style="stop-color:#000000;stop-opacity:1;"
+         offset="1"
+         id="stop10" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient3"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#0058b6;stop-opacity:0.37517935;"
+         offset="0"
+         id="stop3" />
+      <stop
+         style="stop-color:#0058b6;stop-opacity:0;"
+         offset="1"
+         id="stop4" />
+    </linearGradient>
     <clipPath
        clipPathUnits="userSpaceOnUse"
        id="clipPath27">
@@ -27,6 +52,25 @@
          x="86.574379"
          y="420.06253" />
     </clipPath>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient9"
+       id="linearGradient10"
+       x1="29.525883"
+       y1="37.414833"
+       x2="31.836605"
+       y2="39.569798"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient3"
+       id="linearGradient4-3"
+       x1="33.811638"
+       y1="37.913231"
+       x2="39.561737"
+       y2="36.905544"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.71548466,-0.43504568,0.3437041,0.65466653,-3.2581107,27.52556)" />
   </defs>
   <sodipodi:namedview
      id="base"
@@ -35,8 +79,8 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="5.6"
-     inkscape:cx="153.03571"
+     inkscape:zoom="2.8"
+     inkscape:cx="153.57143"
      inkscape:cy="155"
      inkscape:document-units="in"
      inkscape:current-layer="layer1"
@@ -143,34 +187,51 @@
          x="39.201561"
          y="125.44034">📍</tspan></text>
     <g
-       id="g55"
+       id="g12"
        inkscape:export-filename="logo.png"
        inkscape:export-xdpi="600"
        inkscape:export-ydpi="600">
-      <g
-         id="g55-4"
-         transform="translate(-6.7488204,-1.2691524)">
-        <path
-           id="path32-1"
-           style="fill:#000000;fill-opacity:1;stroke-width:1.27;stroke-linejoin:round"
-           d="m 43.340847,34.556632 c 0,1.89805 -2.932498,6.554692 -3.436724,6.554692 -0.527637,0 -3.436723,-4.656642 -3.436723,-6.554692 0,-1.898051 1.538673,-3.436724 3.436723,-3.436724 1.89805,0 3.436724,1.538673 3.436724,3.436724 z"
-           sodipodi:nodetypes="sssss" />
-        <circle
-           style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1.27;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-           id="path35-7"
-           cx="39.904121"
-           cy="34.746529"
-           r="2.0439215" />
-      </g>
-      <rect
-         style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.254;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-         id="rect55-7-5-1"
-         width="11.776263"
-         height="1.3913795"
-         x="27.267172"
-         y="38.98056"
-         rx="5.8881316"
-         ry="1.4589448" />
+      <circle
+         style="fill:#0068ac;fill-opacity:0.23179804;stroke:#0068ac;stroke-width:0.0508;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.57324731"
+         id="path2-9"
+         cx="30.425821"
+         cy="38.335304"
+         r="2.4327998" />
+      <path
+         sodipodi:type="star"
+         style="fill:url(#linearGradient4-3);stroke:none;stroke-width:0.199666;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="path3-2"
+         inkscape:flatsided="true"
+         sodipodi:sides="3"
+         sodipodi:cx="36.554218"
+         sodipodi:cy="35.493378"
+         sodipodi:r1="3.6575165"
+         sodipodi:r2="1.8287584"
+         sodipodi:arg1="0.3242326"
+         sodipodi:arg2="1.3714302"
+         inkscape:rounded="-3.469447e-18"
+         inkscape:randomized="0"
+         d="m 40.021162,36.658595 -6.209523,1.254635 2.018215,-6.004922 z"
+         inkscape:transform-center-x="-1.0786378"
+         inkscape:transform-center-y="-0.11802818"
+         transform="matrix(1.2286443,-0.32944413,0.50101365,1.1828062,-30.157246,5.3194524)" />
+      <circle
+         style="fill:url(#linearGradient10);fill-opacity:1;stroke:#ffffff;stroke-width:0.254;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         id="path2"
+         cx="30.425821"
+         cy="38.335304"
+         r="1.4788283" />
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;line-height:1;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu, Normal';font-variant-ligatures:none;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:0px;word-spacing:0px;fill:#afafb0;fill-opacity:1;stroke:#000000;stroke-width:0.127;stroke-dasharray:none;stroke-opacity:1"
+         x="33.137321"
+         y="40.519756"
+         id="text4"><tspan
+           sodipodi:role="line"
+           id="tspan4"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu, Normal';font-variant-ligatures:none;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#afafb0;fill-opacity:1;stroke:#000000;stroke-width:0.127;stroke-dasharray:none;stroke-opacity:1"
+           x="33.137321"
+           y="40.519756">MouseFinder</tspan></text>
     </g>
   </g>
 </svg>
