@@ -1,84 +1,80 @@
-""" """
+"""A Region of Interest storing the row and column slices of an image where
+mouse detection will occur."""
 
 from typing import Self
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 from matplotlib.patches import Rectangle
-from scipy.ndimage import maximum_filter
-from skimage import exposure, filters, measure, morphology
 
+from mousefinder.readers import VideoReader
 
-from mousefinder.readers import WebmReader
 
 class ROI:
-    """ """
+    """A region of interest for mouse position detection.
 
-    def __init__(self, region: tuple[slice, slice], scale: float) -> None:
-        """ """
+    Attrs:
+        region:
+            A 2-tuple of row and column slice instances that span the image
+            pixels containing the roi.
+        scale:
+            The pixels per cm conversion.
+    """
+
+    def __init__(
+        self,
+        region: tuple[slice, slice],
+        scale: tuple[float, float],
+    ) -> None:
+        """Initialize this ROI with row & columns slices & pixel to cm scale.
+
+        Args:
+            region:
+                A tuple of slices the row slice and the column slice.
+            scale:
+                The float number of pixels per cm.
+        """
 
         self.region = region
         self.scale = scale
 
     @property
-    def center(self):
+    def center(self) -> tuple[int, int]:
         """Returns the row, column center coordinate of this ROI."""
 
-        return [(sl.start + sl.stop) // 2 for sl in self.region]
+        return tuple((sl.start + sl.stop) // 2 for sl in self.region)
 
-    @property
-    def as_mask(self):
-        """Returns a boolean array with a circular region that inscribes this
-        ROI."""
+    def as_mask(self, inscribed='circle') -> npt.NDArray[np.bool_]:
+        """Returns a boolean image of this ROI in which pixels within inscribed
+        are True and False otherwise.
 
-        shape = [sl.stop - sl.start for sl in self.region]
+        Args:
+            inscribed:
+                A string shape of the region to inscribe inside this ROI's
+                region where the mask will be True.
+
+        Returns:
+            A boolean image of the same shape as this ROI's region.
+        """
+
+        if inscribed.lower() not in 'circle square rectangle':
+            msg = f'Mask of shape {inscribed} are not supported'
+            raise ValueError(msg)
+
+        shape = tuple(sl.stop - sl.start for sl in self.region)
+        # rectangular mask
+        if inscribed.lower() in ['square', 'rectangle']:
+            return np.ones(shape)
+
+        # circular mask
         center = np.array((shape)) // 2
         y, x = np.ogrid[: shape[0], : shape[1]]
         squared_dist = (y - center[0]) ** 2 + (x - center[1]) ** 2
         squared_radius = min(shape - center) ** 2
+        bool_img: npt.NDArray[np.bool_] = squared_dist <= squared_radius
 
-        return squared_dist <= squared_radius
-
-    @classmethod
-    def from_video(
-        cls,
-        path: Path | str,
-        scale: float,
-        frames=[0, 10000],
-        filt='sobel',
-        size=10,
-        Reader=WebmReader,
-        thresholder=filters.threshold_li,
-        **kwargs,
-    ) -> Self:
-        """ """
-
-        reader = Reader(path)
-        # remove mouse by MIP across 2 seperated images
-        mip = np.max(reader.keyseek(frames), axis=0)
-        # get edges & convolve removing wire & small structures
-        filtfunc = getattr(filters, filt)
-        edges = filtfunc(mip, mode='constant', cval=0)
-        convolved = maximum_filter(edges, size=size)
-        # threshold to binary image
-        binary = convolved > thresholder(convolved, **kwargs)
-        #label and return the largest region's bounding box
-        labeled = morphology.label(binary)
-        props = measure.regionprops(labeled)
-        largest = props[np.argmax([r.area for r in props])]
-        rows = largest.bbox[0], largest.bbox[2]
-        columns = largest.bbox[1], largest.bbox[3]
-        region = (slice(*rows), slice(*columns))
-
-        return cls(region, scale)
-
-    @classmethod
-    def from_draw(cls, path: Path | str, frame: int=0) -> Self:
-        """ """
-
-        pass
+        return bool_img
 
     def plot(
         self,
@@ -116,37 +112,25 @@ class ROI:
 
         plt.show()
 
+    @classmethod
+    def from_draw(
+        cls,
+        reader: VideoReader,
+        frame: int,
+        scale: tuple[float, float],
+    ) -> Self:
+        """Alternative constructor for creating an ROI from a drawn rectangle.
 
-if __name__ == '__main__':
-    
-    from mousefinder.readers import WebmReader
-    from scipy.ndimage import maximum_filter
-    from skimage.filters.thresholding import threshold_minimum
-    import matplotlib.pyplot as plt
-    import time
+        Args:
+            reader:
+                A VideoReader instance.
+            frame:
+                The frame on which to draw the ROI.
+            scale:
+                The pixel per cm float value of frame.
 
+        Returns:
+            An ROI instance.
+        """
 
-    plt.ion()
-    base = '/media/matt/Magnus/PAC_Data/'
-    #name = '5879_Left_group B-S_no rest_video.webm'
-    #name = '5895_Right_group B-S_video.webm'
-    #name = 'No.6489 left_2022-02-09_13_55_22 (2).webm'
-    name = 'No.6503 right_2022-02-08_15_27_48.webm'
-    path = base + name
-    reader = WebmReader(path)
-    img = reader.keyseek(20000)
-
-    roi = ROI.from_video(path, scale=1)
-    fig0, ax0 = plt.subplots()
-    roi.plot(img, ax=ax0)
-
-    fig1, ax1 = plt.subplots()
-    sliced = img[*roi.region]
-    convolved = maximum_filter(sliced, size=20)
-    thr = threshold_minimum(convolved)
-    binary = convolved<thr
-    masked = binary * roi.as_mask
-    ax1.imshow(masked)
-
-    plt.show()
-
+        raise NotImplementedError
