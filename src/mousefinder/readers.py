@@ -137,6 +137,8 @@ class VideoReader:
         """
 
         indices = [index] if isinstance(index, int) else index
+        # normalize negative indices
+        indices = [len(self) + idx if idx < 0 else idx for idx in indices]
 
         nptype = self.typemap[self.convert]
         result = np.zeros((len(indices), *self.shape[1:]), dtype=nptype)
@@ -201,7 +203,10 @@ class WebmReader(VideoReader):
         """
 
         with av.open(self.path) as container:
-            count = container.duration / av.time_base * self.sample_rate
+            count = (
+                    container.duration / av.time_base
+                    * np.round(self.sample_rate, 2)
+            )
             frame = next(container.decode(video=self.stream_id))
 
         return int(count), frame.height, frame.width
@@ -216,7 +221,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import time
     path = (
-            '/media/matt/Magnus/PAC_Data/5876_Left_group B-S_no rest_video.webm'
+            '/media/matt/Magnus/PAC_Data/5879_Left_group B-S_no rest_video.webm'
             )
 
     reader = WebmReader(path)
