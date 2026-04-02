@@ -198,8 +198,7 @@ class WebmReader(VideoReader):
 
         The frame number is estimated from the duration and sample rate since
         webm does not reliably store the number of frames to the metadata. This
-        means the frame number can be off from the actual frames by a single
-        frame due to rounding errors.
+        means the frame number can be off from the actual number of frames.
         """
 
         with av.open(self.path) as container:

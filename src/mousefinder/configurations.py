@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+import numpy.typing as npt
 from scipy import ndimage
 from skimage import filters, measure, morphology
 
@@ -50,7 +51,7 @@ class Configuration:
 
 
 @dataclass
-class PCG(Configuration):
+class PCGC(Configuration):
     """A representation of Pinnacle's circular gravel bottomed chamber.
 
     Attributes:
@@ -70,6 +71,10 @@ class PCG(Configuration):
             The vertical dimension of the chamber.
         width:
             The horizontal dimension of the chamber.
+        size:
+            The size of the kernel for smoothing away the dark spots in the
+            gravel of the chamber and the electrode wires.
+
     """
 
     name: str = 'Pinnacle Circular Gravel'
@@ -79,6 +84,7 @@ class PCG(Configuration):
     shape: str = 'circle'
     height: float = 24
     width: float = 24
+    size: int = 10
 
     # TODO protocol for filt and thresholder but skimage has not typed
     def roi(
@@ -86,7 +92,6 @@ class PCG(Configuration):
         path: Path | str,
         frames: Sequence[int] = (0, -1),
         filt=filters.sobel,
-        size: int = 10,
         thresholder=filters.threshold_li,
         **kwargs,
     ) -> ROI:
@@ -104,18 +109,19 @@ class PCG(Configuration):
             filt:
                 An edge detection filter function consisting of two kernels for
                 estimating the vertical and horizontal gradients.
-            size:
-                The size of the kernel for smoothing away the dark spots in the
-                gravel of the chamber and the electrode wires.
             thresholder:
                 Am skimage thresholding function for separating the mouse from
                 the background.
             kwargs:
-                Any valid kwarg for the thresholder function.
+                An optional 'size' may be passed for roi detection that will
+                supersede this configuration's size attribute and any
+                valid kwarg for the thresholder function.
 
         Returns:
             An ROI instance.
         """
+
+        size = kwargs.pop('size', self.size)
 
         reader = readers.WebmReader(path)
         # remove mouse by MIP across 2 separated images

@@ -13,43 +13,36 @@ from skimage.filters.thresholding import threshold_minimum
 
 from mousefinder.core.resources import allocate
 from mousefinder.core import mixins
-from mousefinder.configurations import Configuration, PCG
+from mousefinder.configurations import Configuration, PCGC
 from mousefinder import readers
 
-# TODO
-# 1. How to incorporporate kernel size for smoothing during detect
-# this could come from the known configuration
-class PCGModel(mixins.ReprMixin, mixins.SavingMixin):
+
+class PCG(mixins.ReprMixin, mixins.SavingMixin):
     """ """
 
-    def __init__(self, reader: readers.VideoReader, config: Configuration):
-        """ """
+    def __init__(
+        self,
+        reader: readers.VideoReader,
+        config: Configuration = PCGC(),
+        **kwargs,
+    ) -> None:
+        """kwargs passed to configurations roi method """
 
         self.reader = reader
         self.configuration = config
-        self.roi = self.configuration.roi(reader.path)
+        self.roi = self.configuration.roi(reader.path, **kwargs)
+        self.threshold_ = None
+        self.mask_ = self.roi.as_mask()
 
-    def fit(self, size=10):
-        """ """
+    def estimate(self, **kwargs):
+        """kwargs passed to ndimage maximum filter and default footprint size is
+        same as configuration's default"""
 
+        size = kwargs.pop('size', self.configuration.size)
         img = self.reader.keyseek(0)
         x = img[*self.roi.region]
-        x = maximum_filter(x, size=size)
-        self.threshold = threshold_minimum(x[self.roi.as_mask()])
-
-    def detect(self, eframe):
-        """ """
-
-        try:
-            _, frame = eframe
-            x = frame[*self.roi.region]
-            x = maximum_filter(x, size=10)
-            x = x < self.threshold
-            x *= self.roi.as_mask()
-
-            return np.mean(np.nonzero(x), axis=-1)
-        except:
-            return np.array([0,0])
+        x = maximum_filter(x, size=size, **kwargs)
+        self.threshold_ = threshold_minimum(x[self.mask_])
 
     def printable(self, msg: str, verbose: bool, end='\n', flush=True) -> None:
         """Prints a msg to std out if verbose.
@@ -72,6 +65,22 @@ class PCGModel(mixins.ReprMixin, mixins.SavingMixin):
         # pylint: disable-next=expression-not-assigned
         print(msg, end=end, flush=flush) if verbose else None
 
+    def _detect(
+        self,
+        frame_tuple: tuple[int, npt.NDArray],
+        size: int,
+    ) -> npt.NDArray:
+        #size is the smoothing size and mask is the circlar roi mask
+        
+        _, frame = frame_tuple
+        x = frame[*self.roi.region]
+        smoothed = maximum_filter(x, size=size)
+        thresholded = smoothed < self.threshold_
+        bool_im = np.logical_and(thresholded, self.mask_)
+        result = np.mean(np.nonzero(bool_im), axis=-1)
+
+        return result
+
     def __call__(
         self,
         *,
@@ -80,6 +89,7 @@ class PCGModel(mixins.ReprMixin, mixins.SavingMixin):
         chunksize: int = 100,
         verbose: bool = True,
         returning: bool = True,
+        **kwargs,
     ) -> npt.NDArray:
         """Concurrently detects mouse coordinates from each frame of this
         Detector's data.
@@ -110,9 +120,17 @@ class PCGModel(mixins.ReprMixin, mixins.SavingMixin):
             column coordinates.
         """
 
+        if self.threshold_ is None:
+            msg = "Method 'fit' must be called prior to calling this Detector."
+            raise RuntimeError(msg)
+
         # no hyperthread as VideoReader's already hyperthread
         core_cnt = allocate(self.reader.shape[0], ncores, hyperthread=False)
-        func = self.detect
+        size = kwargs.pop('size', self.configuration.size)
+        func = partial(
+                self._detect,
+                size=size,
+        )
 
         results = []
         start = time.perf_counter()
@@ -120,19 +138,27 @@ class PCGModel(mixins.ReprMixin, mixins.SavingMixin):
 
             msg = f'Initializing Detector with {core_cnt} cores.'
             self.printable(msg, verbose)
+            # change mp method to spawn from fork since pyav multithreads
+            # FIXME if run more than once we get context set already errors
+            mp.set_start_method('spawn')
             with mp.Pool(core_cnt) as pool:
 
-                mapping = pool.imap(func, self.reader, chunksize)
-                for idx, coords in enumerate(mapping, 1):
+                mapped = pool.imap(func, self.reader, chunksize)
+                for idx, coords in enumerate(mapped, 1):
                     results.append(coords)
+                    if idx > 1000:
+                        break
                     # if verbose print every chunk completed
                     if idx % chunksize == 0:
-                        msg = f'Completed {idx} / {len(self.reader)} frames.'
+                        #msg = f'Completed {idx} / {len(self.reader)} frames.'
+                        msg = f'Completed {idx} frames.'
                         self.printable(msg, verbose, end='\r')
 
         else:
 
             for idx, arr in enumerate(self.reader, 1):
+                if idx > 100:
+                    break
                 results.append(func(arr))
                 msg = f'Frames completed {idx} / {len(self.reader)}'
                 self.printable(msg, verbose, end='\r')
@@ -179,6 +205,6 @@ if __name__ == '__main__':
     #name = 'No.6503 right_2022-02-08_15_27_48.webm'
     path = base + name
     reader = readers.WebmReader(path)
-    model = PCGModel(reader, config=PCG())
-    model.fit()
-    results = model()
+    model = PCG(reader)
+    model.estimate()
+    results = model(ncores=2)

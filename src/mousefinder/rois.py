@@ -39,12 +39,6 @@ class ROI:
         self.region = region
         self.scale = scale
 
-    @property
-    def center(self) -> tuple[int, int]:
-        """Returns the row, column center coordinate of this ROI."""
-
-        return tuple((sl.start + sl.stop) // 2 for sl in self.region)
-
     def as_mask(self, inscribed='circle') -> npt.NDArray[np.bool_]:
         """Returns a boolean image of this ROI in which pixels within inscribed
         are True and False otherwise.
