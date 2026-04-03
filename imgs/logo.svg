@@ -187,12 +187,12 @@
          x="39.201561"
          y="125.44034">📍</tspan></text>
     <g
-       id="g12"
+       id="g1"
        inkscape:export-filename="logo.png"
        inkscape:export-xdpi="600"
        inkscape:export-ydpi="600">
       <circle
-         style="fill:#0068ac;fill-opacity:0.23179804;stroke:#0068ac;stroke-width:0.0508;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.57324731"
+         style="fill:#0068ac;fill-opacity:0.231798;stroke:#0068ac;stroke-width:0.0508;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.573247"
          id="path2-9"
          cx="30.425821"
          cy="38.335304"
@@ -223,13 +223,13 @@
          r="1.4788283" />
       <text
          xml:space="preserve"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;line-height:1;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu, Normal';font-variant-ligatures:none;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:0px;word-spacing:0px;fill:#afafb0;fill-opacity:1;stroke:#000000;stroke-width:0.127;stroke-dasharray:none;stroke-opacity:1"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;line-height:1;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu, Normal';font-variant-ligatures:none;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.127;stroke-dasharray:none;stroke-opacity:1"
          x="33.137321"
          y="40.519756"
          id="text4"><tspan
            sodipodi:role="line"
            id="tspan4"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu, Normal';font-variant-ligatures:none;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#afafb0;fill-opacity:1;stroke:#000000;stroke-width:0.127;stroke-dasharray:none;stroke-opacity:1"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:6.35px;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu, Normal';font-variant-ligatures:none;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.127;stroke-dasharray:none;stroke-opacity:1"
            x="33.137321"
            y="40.519756">MouseFinder</tspan></text>
     </g>
