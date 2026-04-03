@@ -15,6 +15,7 @@ from mousefinder.core.resources import allocate
 from mousefinder.core import mixins
 from mousefinder.configurations import Configuration, PCGC
 from mousefinder import readers
+from mousefinder.rois import ROI
 
 
 class PCG(mixins.ReprMixin, mixins.SavingMixin):
@@ -23,25 +24,28 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin):
     def __init__(
         self,
         reader: readers.VideoReader,
-        config: Configuration = PCGC(),
-        **kwargs,
+        roi: ROI,
+        config: Configuration,
     ) -> None:
-        """kwargs passed to configurations roi method """
+        """ """
 
         self.reader = reader
+        self.roi = roi
         self.configuration = config
-        self.roi = self.configuration.roi(reader.path, **kwargs)
-        self.threshold_ = None
-        self.mask_ = self.roi.as_mask()
 
-    def estimate(self, **kwargs):
+        # parameters determined from estimate method
+        self.threshold_: int | None = None
+        self.mask_: npt.NDArray[np.bool_] | None = None
+
+    def estimate(self, size=10, **kwargs):
         """kwargs passed to ndimage maximum filter and default footprint size is
         same as configuration's default"""
 
-        size = kwargs.pop('size', self.configuration.size)
         img = self.reader.keyseek(0)
         x = img[*self.roi.region]
         x = maximum_filter(x, size=size, **kwargs)
+
+        self.mask_ = self.roi.as_mask()
         self.threshold_ = threshold_minimum(x[self.mask_])
 
     def printable(self, msg: str, verbose: bool, end='\n', flush=True) -> None:
@@ -126,7 +130,7 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin):
 
         # no hyperthread as VideoReader's already hyperthread
         core_cnt = allocate(self.reader.shape[0], ncores, hyperthread=False)
-        size = kwargs.pop('size', self.configuration.size)
+        size = kwargs.pop('size', 10)
         func = partial(
                 self._detect,
                 size=size,
@@ -138,9 +142,6 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin):
 
             msg = f'Initializing Detector with {core_cnt} cores.'
             self.printable(msg, verbose)
-            # change mp method to spawn from fork since pyav multithreads
-            # FIXME if run more than once we get context set already errors
-            mp.set_start_method('spawn')
             with mp.Pool(core_cnt) as pool:
 
                 mapped = pool.imap(func, self.reader, chunksize)
@@ -205,6 +206,8 @@ if __name__ == '__main__':
     #name = 'No.6503 right_2022-02-08_15_27_48.webm'
     path = base + name
     reader = readers.WebmReader(path)
-    model = PCG(reader)
+    config = PCGC()
+    roi = ROI.from_PCG(reader, config)
+    model = PCG(reader, roi, config)
     model.estimate()
     results = model(ncores=2)
