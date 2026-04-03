@@ -136,3 +136,29 @@ class SavingMixin:
         # shorten destination and print to stdout with timing info
         aRepr = reprlib.Repr(maxother=80)
         print(f'Saved to {aRepr.repr(target)} in {tf - t0} secs.')
+
+
+#pylint: disable-next=too-few-public-methods
+class PrintMixin:
+    """A mixin for generic printing of messages to stdout."""
+
+    def printable(self, msg: str, verbose: bool, end='\n', flush=True) -> None:
+        """Prints a msg to std out if verbose.
+
+        Args:
+            msg:
+                A string message to print.
+            verbose:
+                A boolean indicating if the message should be printed to stdout.
+            end:
+                The line ending following the message.
+            flush:
+                Boolean indicating if results should be flushed immediately to
+                stdout.
+
+        Returns:
+            None
+        """
+
+        # pylint: disable-next=expression-not-assigned
+        print(msg, end=end, flush=flush) if verbose else None
