@@ -2,10 +2,11 @@
 container and codec type supported by pyav.
 """
 
+import re
 import typing
-from collections.abc import Iterator
-from pathlib import Path
+from collections.abc import Iterator, Sequence
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import av
@@ -42,7 +43,7 @@ class VideoReader:
         self.stream_id = stream_id
         if convert not in self.typemap:
             msg = f'Conversion to {convert} is not currently supported'
-            raise(msg)
+            raise ValueError(msg)
         self.convert = convert if convert else self.format
 
     @property
@@ -74,6 +75,10 @@ class VideoReader:
             stream = container.streams.video[self.stream_id]
             result = stream.guessed_rate
 
+        if result is None:
+            msg = 'FFMPEG could not determine the sample rate.'
+            raise AttributeError(msg)
+
         return float(result)
 
     def creation_time(
@@ -95,15 +100,16 @@ class VideoReader:
         with av.open(self.path) as container:
             # assumes creation_time is an iso compliant UTC time
             start = container.metadata.get('creation_time', None)
-            utc_time = datetime.fromisoformat(start)
-            zone = ZoneInfo(timezone) if timezone else None
-            return utc_time.astimezone(zone)
+            if start:
+                utc_time = datetime.fromisoformat(start)
+                zone = ZoneInfo(timezone) if timezone else None
+                return utc_time.astimezone(zone)
 
-        if not start:
             # Time on path is assumed to be local time
-            match = re.search(rf'((\d+)(\.)', self.path)
+            match = re.search(r'((\d+)(\.)', str(self.path))
             start = match.group(1) if match else None
-            return datetime.strptime(start, fmt)
+            if start:
+                return datetime.strptime(start, fmt)
 
         return None
 
@@ -111,7 +117,7 @@ class VideoReader:
     @typing.no_type_check
     def keyseek(
         self,
-        index: int | typing.Sequence[int],
+        index: int | Sequence[int],
         **kwargs,
     ) -> npt.NDArray:
         """Seeks to the closest keyframe for each indexed frame in index.
@@ -122,7 +128,7 @@ class VideoReader:
         Args:
             index:
                 An integer frame index or sequence of frame indices. They
-                key frames closest but preceeding each index will be returned
+                key frames closest but preceding each index will be returned
             kwargs:
                 All keyword arguments are passed to the container's seek method
                 see pyav container docs for details.
@@ -160,7 +166,7 @@ class VideoReader:
 
         return np.squeeze(result)
 
-    def __iter__(self) -> Iterator[npt.NDArray]:
+    def __iter__(self) -> Iterator[tuple[int, npt.NDArray]]:
         """Yields frames from this VideoReader."""
 
         # fetch attrs just once for performance
@@ -203,39 +209,10 @@ class WebmReader(VideoReader):
 
         with av.open(self.path) as container:
             count = (
-                    container.duration / av.time_base
-                    * np.round(self.sample_rate, 2)
+                container.duration
+                / av.time_base
+                * np.round(self.sample_rate, 2)
             )
             frame = next(container.decode(video=self.stream_id))
 
         return int(count), frame.height, frame.width
-
-
-
-
-if __name__ == '__main__':
-
-    from scipy.ndimage import maximum_filter
-    from skimage.filters.thresholding import threshold_minimum
-    import matplotlib.pyplot as plt
-    import time
-    path = (
-            '/media/matt/Magnus/PAC_Data/5879_Left_group B-S_no rest_video.webm'
-            )
-
-    reader = WebmReader(path)
-    """
-    t0 = time.perf_counter()
-    for idx, frame in enumerate(reader):
-        if idx % 10000 == 0:
-            print(idx)
-    print(time.perf_counter() - t0)
-    """
-
-    x = reader.keyseek([i*2000 for i in range(20)])
-    img = x[10]
-    fimg = maximum_filter(img, size=5)
-    level = threshold_minimum(fimg)
-
-    plt.imshow(fimg<level, cmap='gray')
-    plt.show()
