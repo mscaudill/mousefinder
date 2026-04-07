@@ -14,6 +14,7 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 from scipy.ndimage import maximum_filter
+from skimage import measure
 from skimage.filters.thresholding import threshold_minimum
 
 from mousefinder import readers
@@ -104,14 +105,19 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
         thresholded = smoothed < self.threshold_
         # no typing here for speed, instance in __call__ ensures mask not None
         bool_im = np.logical_and(thresholded, self.mask_)  # type: ignore
-        result: npt.NDArray[np.float64] = np.mean(np.nonzero(bool_im), axis=-1)
 
+        # get the largest labeled regions centroid
+        labeled = measure.label(bool_im)
+        regions = measure.regionprops(labeled, intensity_image=x)
+        idx = np.argmax([r.intensity_std for r in regions])
+
+        result: npt.NDArray[np.float64] = regions[idx].centroid
         return result
 
     def __call__(
         self,
         *,
-        size: int = 10,
+        size: int = 20,
         path: Path | str | None = None,
         ncores: int | None = None,
         chunksize: int = 100,
@@ -127,7 +133,7 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
                 pixel values of the frame. This value should be large enough to
                 smooth neighboring dark values in the gravel bed while being
                 small enough to not blur the mouse position unreasonably. For
-                the PCGC configuration, the default value is 10 pixel smoothing.
+                the PCGC configuration, the default value is 20 pixel smoothing.
             path:
                 A path or string to a dir where the coordinates will be saved
                 to. If None, the coordinates will be saved to the same directory
@@ -223,9 +229,9 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
 if __name__ == '__main__':
 
-    base = '/media/matt/Magnus/PAC_Data/videos/'
-    name = '5879_Left_group B-S_no rest_video.webm'
-    # name = '5895_Right_group B-S_video.webm'
+    base = '/media/matt/compute/PAC_Data/videos/'
+    #name = '5879_Left_group B-S_no rest_video.webm'
+    name = '5895_Right_group B-S_video.webm'
     # name = 'No.6489 left_2022-02-09_13_55_22 (2).webm'
     # name = 'No.6503 right_2022-02-08_15_27_48.webm'
     path = base + name
@@ -234,4 +240,4 @@ if __name__ == '__main__':
     roi = ROI.from_PCG(reader, config)
     model = PCG(reader, roi, config)
     model.estimate()
-    results = model(ncores=2, saving=False)
+    results = model(ncores=2, saving=False, chunksize=100)
