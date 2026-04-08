@@ -162,7 +162,7 @@ class VideoReader:
 
                 container.seek(timestamp, stream=vstream, **kwargs)
                 frame = next(iter(container.decode(video=self.stream_id)))
-                result[idx] = frame.to_ndarray(format=self.convert)
+                result[idx] = frame.to_ndarray()[:frame.height]
 
         return np.squeeze(result)
 
@@ -174,7 +174,9 @@ class VideoReader:
         with av.open(self.path) as container:
             container.streams.video[sid].thread_type = 'AUTO'
             for idx, frame in enumerate(container.decode(video=sid)):
-                yield idx, frame.to_ndarray(format=fmt)
+                # to do need conversion helpers, the webm files I'm reading are
+                # 420p with 8-bit depth (0-255) not standard
+                yield idx, frame.to_ndarray()[:frame.height]
 
     def __len__(self):
         """Returns the number of frames in this VideoReader."""
@@ -216,3 +218,21 @@ class WebmReader(VideoReader):
             frame = next(container.decode(video=self.stream_id))
 
         return int(count), frame.height, frame.width
+
+
+if __name__ == '__main__':
+
+    import time
+    fp  = (
+        '/media/matt/compute/PAC_Data/videos/'
+        '5879_Left_group B-S_no rest_video.webm'
+    )
+
+    t0 = time.perf_counter()
+    reader = WebmReader(fp)
+    for idx, frame in reader:
+        x = frame
+        print(idx)
+
+    print(f'Read complete in {time.perf_counter() - t0} secs')
+
