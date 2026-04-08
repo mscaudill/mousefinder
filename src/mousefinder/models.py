@@ -99,6 +99,8 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
             center-of-mass is predicted to be.
         """
 
+        result: npt.NDArray[np.float64] = np.nan* np.ones(2)
+        
         _, frame = frame_tuple
         x = frame[*self.roi.region]
         smoothed = maximum_filter(x, size=size)
@@ -108,10 +110,13 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
         # get the largest labeled regions centroid
         labeled = measure.label(bool_im)
-        regions = measure.regionprops(labeled, intensity_image=x)
-        idx = np.argmax([r.intensity_std for r in regions])
+        regions = measure.regionprops(labeled)
+        if not regions:
+            return result
 
-        result: npt.NDArray[np.float64] = regions[idx].centroid
+        idx = np.argmax([r.area for r in regions])
+        result = regions[idx].centroid
+        
         return result
 
     def __call__(
@@ -230,8 +235,8 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 if __name__ == '__main__':
 
     base = '/media/matt/compute/PAC_Data/videos/'
-    #name = '5879_Left_group B-S_no rest_video.webm'
-    name = '5895_Right_group B-S_video.webm'
+    name = '5879_Left_group B-S_no rest_video.webm'
+    #name = '5895_Right_group B-S_video.webm'
     # name = 'No.6489 left_2022-02-09_13_55_22 (2).webm'
     # name = 'No.6503 right_2022-02-08_15_27_48.webm'
     path = base + name
@@ -240,4 +245,4 @@ if __name__ == '__main__':
     roi = ROI.from_PCG(reader, config)
     model = PCG(reader, roi, config)
     model.estimate()
-    results = model(ncores=2, saving=False, chunksize=100)
+    results = model(ncores=10, saving=False, chunksize=100)
