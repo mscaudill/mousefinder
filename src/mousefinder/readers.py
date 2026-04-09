@@ -13,6 +13,8 @@ import av
 import numpy as np
 import numpy.typing as npt
 
+from mousefinder import formats
+from mousefinder.formats import Formatter
 
 class VideoReader:
     """An iterable video stream reader of pyav supported video containers.
@@ -25,26 +27,22 @@ class VideoReader:
             The path to the video.
         stream_id:
             The integer id of the video stream to read.
-        convert:
-            The color format each frame will be converted to.
+        formatter:
+            A function for formatting each pyav Frame instance into a grayscale
+            image.
     """
-
-    typemap = {'gray8': np.uint8}
 
     def __init__(
         self,
         path: str | Path,
         stream_id: int = 0,
-        convert: str | None = 'gray8',
+        formatter: Formatter = formats.from_yuvj420p,
     ) -> None:
         """Initialize this VideoReader."""
 
         self.path = Path(path)
         self.stream_id = stream_id
-        if convert not in self.typemap:
-            msg = f'Conversion to {convert} is not currently supported'
-            raise ValueError(msg)
-        self.convert = convert if convert else self.format
+        self.formatter = formatter
 
     @property
     def shape(self) -> tuple[int, int, int]:
@@ -146,8 +144,7 @@ class VideoReader:
         # normalize negative indices
         indices = [len(self) + idx if idx < 0 else idx for idx in indices]
 
-        nptype = self.typemap[self.convert]
-        result = np.zeros((len(indices), *self.shape[1:]), dtype=nptype)
+        result = np.zeros((len(indices), *self.shape[1:]), dtype=np.uint8)
         with av.open(self.path) as container:
 
             vstream = container.streams.video[self.stream_id]
@@ -162,7 +159,7 @@ class VideoReader:
 
                 container.seek(timestamp, stream=vstream, **kwargs)
                 frame = next(iter(container.decode(video=self.stream_id)))
-                result[idx] = frame.to_ndarray()[:frame.height]
+                result[idx] = self.formatter(frame)
 
         return np.squeeze(result)
 
@@ -170,13 +167,11 @@ class VideoReader:
         """Yields frames from this VideoReader."""
 
         # fetch attrs just once for performance
-        sid, fmt = self.stream_id, self.convert
+        sid, fmt = self.stream_id, self.formatter
         with av.open(self.path) as container:
             container.streams.video[sid].thread_type = 'AUTO'
             for idx, frame in enumerate(container.decode(video=sid)):
-                # to do need conversion helpers, the webm files I'm reading are
-                # 420p with 8-bit depth (0-255) not standard
-                yield idx, frame.to_ndarray()[:frame.height]
+                yield idx, fmt(frame)
 
     def __len__(self):
         """Returns the number of frames in this VideoReader."""
@@ -210,12 +205,16 @@ class WebmReader(VideoReader):
         """
 
         with av.open(self.path) as container:
-            count = (
-                container.duration
-                / av.time_base
-                * np.round(self.sample_rate, 2)
-            )
+            stream = container.streams.video[self.stream_id]
             frame = next(container.decode(video=self.stream_id))
+            try:
+                # try more accurate stream counting
+                duration = stream.duration * stream.time_base
+                count = int(duration * stream.average_rate)
+            except TypeError:
+                # if stream duration is missing fallback to container meta
+                duration = container.duration
+                count = int(duration / av.time_base * self.sample_rate)
 
         return int(count), frame.height, frame.width
 
@@ -230,7 +229,7 @@ if __name__ == '__main__':
 
     t0 = time.perf_counter()
     reader = WebmReader(fp)
-    for idx, frame in reader:
+    for idx, frame in enumerate(reader):
         x = frame
         print(idx)
 
