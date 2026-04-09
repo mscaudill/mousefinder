@@ -23,7 +23,6 @@ from mousefinder.core import mixins
 from mousefinder.core.resources import allocate
 from mousefinder.rois import ROI
 
-
 class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
     """A model for mouse center-of-mass detection for Pinnacle's circular
     chamber with a gravel bottom and a top-down camera angle.
@@ -49,6 +48,7 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
         self.reader = reader
         self.roi = roi
         self.configuration = config
+        self._ctx = mp.get_context('spawn')
 
         self.threshold_: int | None = None
         self.mask_: npt.NDArray[np.bool_] | None = None
@@ -186,7 +186,7 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
             msg = f'Initializing Detection with {core_cnt} cores.'
             self.printable(msg, verbose)
-            with mp.Pool(core_cnt) as pool:
+            with self._ctx.Pool(core_cnt) as pool:
 
                 mapped = pool.imap(func, self.reader, chunksize)
                 for idx, coords in enumerate(mapped, 1):
@@ -245,4 +245,4 @@ if __name__ == '__main__':
     roi = ROI.from_PCG(reader, config)
     model = PCG(reader, roi, config)
     model.estimate()
-    results = model(ncores=10, saving=False, chunksize=100)
+    results = model(ncores=10, saving=False, chunksize=200)
