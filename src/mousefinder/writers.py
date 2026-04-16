@@ -92,17 +92,20 @@ class MonoWriter(mixins.ReprMixin):
 if __name__ == '__main__':
 
     import pickle
-    base = '/media/matt/Magnus/PAC_Data/'
-    name = '5879_Left_group B-S_no rest_video.webm'
+    base = '/media/matt/Magnus/data/PAC_Data/videos/'
+    name = '5876_Left_group B-S_no rest_video.webm'
     video_path = base + name
-    coords_path = base + '5879_Left_group B-S_no rest_video_coordinates.pkl'
+    #coords_path = base + '5879_Left_group B-S_no rest_video_coordinates.pkl'
 
     reader = WebmReader(video_path)
+
+    """
     with open(coords_path, 'rb') as infile:
         data_dict = pickle.load(infile)
         coords = data_dict['coordinates']
 
     writer = MonoWriter(reader, coords)
     writer.write()
+    """
 
 

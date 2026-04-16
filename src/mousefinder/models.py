@@ -223,15 +223,16 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
 if __name__ == '__main__':
 
-    base = '/media/matt/Magnus/PAC_Data/videos/'
-    name = '5879_Left_group B-S_no rest_video.webm'
+    base = '/media/matt/Magnus/data/PAC_Data/videos/'
+    #name = '5879_Left_group B-S_no rest_video.webm'
     # name = '5895_Right_group B-S_video.webm'
     # name = 'No.6489 left_2022-02-09_13_55_22 (2).webm'
     # name = 'No.6503 right_2022-02-08_15_27_48.webm'
+    name = '5876_Left_group_B-S_corrected30secs.webm'
     path = base + name
     reader = readers.WebmReader(path)
     config = PCGC()
     roi = ROI.from_PCG(reader, config)
     model = PCG(reader, roi, config)
     model.estimate()
-    results = model(ncores=2, saving=False)
+    results = model(ncores=2, saving=True)

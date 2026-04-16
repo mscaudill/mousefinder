@@ -199,7 +199,7 @@ class ROI:
 
 if __name__ == '__main__':
 
-    base = '/media/matt/Magnus/PAC_Data/'
+    base = '/media/matt/Magnus/PAC_Data/videos/'
     name = '5879_Left_group B-S_no rest_video.webm'
     # name = '5895_Right_group B-S_video.webm'
     # name = 'No.6489 left_2022-02-09_13_55_22 (2).webm'
