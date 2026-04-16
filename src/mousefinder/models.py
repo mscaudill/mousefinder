@@ -14,6 +14,7 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 from scipy.ndimage import maximum_filter
+from skimage import measure
 from skimage.filters.thresholding import threshold_minimum
 
 from mousefinder import readers
@@ -21,7 +22,6 @@ from mousefinder.configurations import PCGC, Configuration
 from mousefinder.core import mixins
 from mousefinder.core.resources import allocate
 from mousefinder.rois import ROI
-
 
 class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
     """A model for mouse center-of-mass detection for Pinnacle's circular
@@ -48,6 +48,7 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
         self.reader = reader
         self.roi = roi
         self.configuration = config
+        self._ctx = mp.get_context('spawn')
 
         self.threshold_: int | None = None
         self.mask_: npt.NDArray[np.bool_] | None = None
@@ -98,20 +99,30 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
             center-of-mass is predicted to be.
         """
 
+        result: npt.NDArray[np.float64] = np.nan* np.ones(2)
+        
         _, frame = frame_tuple
         x = frame[*self.roi.region]
         smoothed = maximum_filter(x, size=size)
         thresholded = smoothed < self.threshold_
         # no typing here for speed, instance in __call__ ensures mask not None
         bool_im = np.logical_and(thresholded, self.mask_)  # type: ignore
-        result: npt.NDArray[np.float64] = np.mean(np.nonzero(bool_im), axis=-1)
 
+        # get the largest labeled regions centroid
+        labeled = measure.label(bool_im)
+        regions = measure.regionprops(labeled)
+        if not regions:
+            return result
+
+        idx = np.argmax([r.area for r in regions])
+        result = regions[idx].centroid
+        
         return result
 
     def __call__(
         self,
         *,
-        size: int = 10,
+        size: int = 20,
         path: Path | str | None = None,
         ncores: int | None = None,
         chunksize: int = 100,
@@ -127,7 +138,7 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
                 pixel values of the frame. This value should be large enough to
                 smooth neighboring dark values in the gravel bed while being
                 small enough to not blur the mouse position unreasonably. For
-                the PCGC configuration, the default value is 10 pixel smoothing.
+                the PCGC configuration, the default value is 20 pixel smoothing.
             path:
                 A path or string to a dir where the coordinates will be saved
                 to. If None, the coordinates will be saved to the same directory
@@ -175,7 +186,7 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
             msg = f'Initializing Detection with {core_cnt} cores.'
             self.printable(msg, verbose)
-            with mp.Pool(core_cnt) as pool:
+            with self._ctx.Pool(core_cnt) as pool:
 
                 mapped = pool.imap(func, self.reader, chunksize)
                 for idx, coords in enumerate(mapped, 1):
@@ -223,9 +234,9 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
 if __name__ == '__main__':
 
-    base = '/media/matt/Magnus/data/PAC_Data/videos/'
-    #name = '5879_Left_group B-S_no rest_video.webm'
-    # name = '5895_Right_group B-S_video.webm'
+    base = '/media/matt/compute/PAC_Data/videos/'
+    name = '5879_Left_group B-S_no rest_video.webm'
+    #name = '5895_Right_group B-S_video.webm'
     # name = 'No.6489 left_2022-02-09_13_55_22 (2).webm'
     # name = 'No.6503 right_2022-02-08_15_27_48.webm'
     name = '5876_Left_group_B-S_corrected30secs.webm'
@@ -235,4 +246,4 @@ if __name__ == '__main__':
     roi = ROI.from_PCG(reader, config)
     model = PCG(reader, roi, config)
     model.estimate()
-    results = model(ncores=2, saving=True)
+    results = model(ncores=10, saving=False, chunksize=200)
