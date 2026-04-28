@@ -235,6 +235,7 @@ if __name__ == '__main__':
     #coords_path = coord_base + '5895_Right_group B-S_video_coordinates.pkl'
 
     reader = WebmReader(video_path)
+
     with open(coords_path, 'rb') as infile:
         data_dict = pickle.load(infile)
         coords = data_dict['coordinates']
@@ -242,6 +243,3 @@ if __name__ == '__main__':
     writer = MPLWriter(reader, coords, show_frame=False, label=True,
             imageprops={'cmap': 'viridis'}, marker='o', color='red')
     writer.preview()
-
-
-
