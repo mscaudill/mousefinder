@@ -104,7 +104,7 @@ class VideoReader:
                 return utc_time.astimezone(zone)
 
             # Time on path is assumed to be local time
-            match = re.search(r'((\d+)(\.)', str(self.path))
+            match = re.search(r'(\d+)(\.)', str(self.path))
             start = match.group(1) if match else None
             if start:
                 return datetime.strptime(start, fmt)
@@ -227,8 +227,11 @@ if __name__ == '__main__':
         '5879_Left_group B-S_no rest_video.webm'
     )
 
+    fp = '/media/matt/Magnus/vishnu_video_track/small_video.mpg'
+
     t0 = time.perf_counter()
-    reader = WebmReader(fp)
+    #reader = WebmReader(fp)
+    reader = VideoReader(fp)
     for idx, frame in enumerate(reader):
         x = frame
         print(idx)
