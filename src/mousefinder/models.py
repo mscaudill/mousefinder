@@ -1,9 +1,9 @@
 """A collection of mouse center-of-mass detection models.
 
 This collection consist of:
-    PCG:
+    PCGTop:
         A model for detecting the mouse center-of-mass in the Pinnacle circular
-        chamber with a gravel bed and camera viewing angle from top.
+        chamber with a gravel bed and top-down camera viewing angle.
 """
 
 import multiprocessing as mp
@@ -13,9 +13,9 @@ from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
-from scipy.ndimage import maximum_filter
-from skimage import measure
-from skimage.filters.thresholding import threshold_minimum
+from scipy.ndimage import gaussian_filter, label, minimum_filter, maximum_filter
+from skimage import measure, morphology, transform
+from skimage.filters.thresholding import threshold_li
 
 from mousefinder import readers
 from mousefinder.configurations import PCGC, Configuration
@@ -23,7 +23,8 @@ from mousefinder.core import mixins
 from mousefinder.core.resources import allocate
 from mousefinder.rois import ROI
 
-class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
+
+class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
     """A model for mouse center-of-mass detection for Pinnacle's circular
     chamber with a gravel bottom and a top-down camera angle.
 
@@ -33,7 +34,7 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
         roi:
             A region of interest (ROI) instance (see mousefinder.rois)
         config:
-            A chamber configuration data class. For this model this will usually
+            A chamber configuration data class. For this model, this will usually
             be the PCGC configuration.
     """
 
@@ -51,33 +52,31 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
         self._ctx = mp.get_context('spawn')
 
         self.threshold_: int | None = None
-        self.mask_: npt.NDArray[np.bool_] | None = None
 
-    def estimate(self, size: int = 10, **kwargs) -> None:
+    def estimate(
+        self,
+        size: int | None = None,
+        thresholder = threshold_li,
+        **kwargs,
+    ) -> None:
         """Estimates the integer threshold that best distinguishes the mouse
         pixels from the background pixels.
 
         Args:
             size:
-                The size of the kernel used to smooth the pixel value
-                discontinuities in the gravel and the electrode wires. The
-                default value of 10 pixels is appropriate for the PCGC
-                configuration.
             kwargs:
-                Any valid kwarg for scipy's ndimage.maximum_filter that is used
-                for smoothing.
 
         Returns:
             None
         """
+        
+        frame = self.reader.keyseek(0)
+        self.lighting_blur_ = frame.shape[0] // 20 if size is None else size
 
-        img = self.reader.keyseek(0)
-        x = img[*self.roi.region]
-        x = maximum_filter(x, size=size, **kwargs)
-
-        # store threshold and roi mask to this instance and narrow types
-        self.mask_ = self.roi.as_mask()
-        self.threshold_ = threshold_minimum(x[self.mask_])
+        img = frame[*self.roi.region]
+        blurred = gaussian_filter(img, sigma=self.lighting_blur_)
+        corrected = img / blurred
+        self.threshold_ = thresholder(corrected)
 
     def _worker(
         self,
@@ -96,33 +95,41 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
         Returns:
             A 2-el array of row and column indices where the mouse's
-            center-of-mass is predicted to be.
+            center-of-mass is predicted to be relative to this model's roi.
         """
 
         result: npt.NDArray[np.float64] = np.nan* np.ones(2)
-        
-        _, frame = frame_tuple
-        x = frame[*self.roi.region]
-        smoothed = maximum_filter(x, size=size)
-        thresholded = smoothed < self.threshold_
-        # no typing here for speed, instance in __call__ ensures mask not None
-        bool_im = np.logical_and(thresholded, self.mask_)  # type: ignore
 
-        # get the largest labeled regions centroid
-        labeled = measure.label(bool_im)
+        _, frame = frame_tuple 
+        x = frame[*self.roi.region].astype(float)
+        # correct lighting, smooth out gravel and threshold
+        corrected = x / gaussian_filter(x, self.lighting_blur_)
+        smoothed = gaussian_filter(corrected, sigma=size)
+        bool_img = smoothed < self.threshold_
+
+        # remove small detections
+        bool_img = minimum_filter(bool_img, size=size)
+
+        labeled, cnt = label(bool_img)
+        if cnt == 0:
+            return np.nan * np.ones(2)
+        
+        if cnt == 1:
+            return np.mean(np.nonzero(bool_img, axis=-1))
+
+        # get largest 2 regions
         regions = measure.regionprops(labeled)
-        if not regions:
-            return result
+        sorted_regions = sorted(regions, key=lambda r: r.area, reverse=True)[:2]
+        ratios = [ r.area * r.perimeter / measure.perimeter(
+                r.image_convex) for r in sorted_regions
+        ]
 
-        idx = np.argmax([r.area for r in regions])
-        result = regions[idx].centroid
-        
-        return result
+        return sorted_regions[np.argmax(ratios)].centroid
 
     def __call__(
         self,
         *,
-        size: int = 20,
+        size: int = 10,
         path: Path | str | None = None,
         ncores: int | None = None,
         chunksize: int = 100,
@@ -166,15 +173,14 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
             column coordinates for each of the n frames of this Model's reader.
         """
 
-        if any([el is None for el in (self.threshold_, self.mask_)]):
+        if self.threshold_ is None:
             msg = (
                 "Method 'estimate' must be called prior to calling this Model."
             )
             raise RuntimeError(msg)
 
-        # narrow the estimated paramter types
-        assert isinstance(self.mask_, np.ndarray)
-        assert isinstance(self.threshold_, np.int64)
+        # narrow the estimated parameter types
+        assert isinstance(self.threshold_, np.float64)
 
         # no hyperthread as VideoReader's already hyperthread
         core_cnt = allocate(self.reader.shape[0], ncores, hyperthread=False)
@@ -230,19 +236,3 @@ class PCG(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
             )
 
         return result
-
-
-if __name__ == '__main__':
-
-    base = '/media/matt/compute/PAC_Data/videos/'
-    name = '5879_Left_group B-S_no rest_video.webm'
-    #name = '5895_Right_group B-S_video.webm'
-    # name = 'No.6489 left_2022-02-09_13_55_22 (2).webm'
-    # name = 'No.6503 right_2022-02-08_15_27_48.webm'
-    path = base + name
-    reader = readers.WebmReader(path)
-    config = PCGC()
-    roi = ROI.from_PCG(reader, config)
-    model = PCG(reader, roi, config)
-    model.estimate()
-    results = model(ncores=10, saving=False, chunksize=200)
