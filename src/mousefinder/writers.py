@@ -164,7 +164,7 @@ class MPLWriter(mixins.ReprMixin):
         if self.label:
             self._legend.get_texts()[0].set_text(f'Frame {idx}')
 
-    def preview(self, fps: int | None = None):
+    def preview(self, fps: int | None = None, repeat: bool = True):
         """Opens an animation that displays the data and coordinates to be
         written.
 
@@ -183,7 +183,7 @@ class MPLWriter(mixins.ReprMixin):
                 frames=self._data,
                 interval=interval,
                 blit=False,
-                repeat=False,
+                repeat=repeat,
                 cache_frame_data=False,
         )
         plt.show()
@@ -219,27 +219,3 @@ class MPLWriter(mixins.ReprMixin):
                 cache_frame_data=False,
         )
         self.ani.save(path)
-
-
-if __name__ == '__main__':
-
-    import pickle
-    from mousefinder.readers import WebmReader
-
-    video_base = '/media/matt/compute/PAC_Data/videos/'
-    coord_base = '/media/matt/compute/PAC_Data/videos/'
-    name = '5879_Left_group B-S_no rest_video.webm'
-    #name = '5895_Right_group B-S_video.webm'
-    video_path = video_base + name
-    coords_path = coord_base + '5879_Left_group B-S_no rest_video_coordinates.pkl'
-    #coords_path = coord_base + '5895_Right_group B-S_video_coordinates.pkl'
-
-    reader = WebmReader(video_path)
-
-    with open(coords_path, 'rb') as infile:
-        data_dict = pickle.load(infile)
-        coords = data_dict['coordinates']
-
-    writer = MPLWriter(reader, coords, show_frame=False, label=True,
-            imageprops={'cmap': 'viridis'}, marker='o', color='red')
-    writer.preview()
