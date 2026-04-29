@@ -17,26 +17,23 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Topic :: File Formats",
-    "Topic :: Text Processing",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Information Analysis"
 ]
 keywords = [
-    "text",
-    "delimited",
-    "csv",
-    "tsv"
+    "machine-vision",
+    "tracking",
 ]
 dependencies = [
-    "av",
-    "pims",
     "numpy",
     "scipy",
     "scikit-image",
     "matplotlib",
     "ipython",
     "notebook",
+    "psutil",
+    "ffmpeg",
+    "av",
     "psutil",
 ]
 requires-python = ">=3.13"
@@ -58,6 +55,7 @@ dev = [
     "build",
     "twine",
     "types-psutil",
+    "scipy-stubs",
 ]
 linting = ["codespell", "isort", "pylint", "black"]
 typing = ["mypy"]
@@ -98,10 +96,8 @@ exclude = ['sandbox/.*']
 
 [[tool.mypy.overrides]]
 # 3rd party's without annotations
-module = ['statx']
 ignore_missing_imports = true
 
-# pylint configuration
 [tool.pylint.design]
 max-attributes = 20
 max-args = 10
