@@ -1,0 +1,34 @@
+name: 💡 Feature Request
+description: Suggest an idea for Tabbed
+labels: [enhancement]
+title: "[FEAT]: <Title>"
+body:
+
+  # Describe your idea
+  - type: textarea
+    attributes:
+      label: Describe the Feature Request
+      description: A concise description of what the proposed feature does.
+    validations:
+        required: true
+
+  # Any other info?
+  - type: textarea
+    attributes:
+      label: Additional Information
+      description: |
+        Provide stack traces, related issues, suggestions on how to implement,
+        Stack Overflow links, etc.
+
+  # Code of Conduct
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: >
+        By submitting this issue, you agree to follow our
+        [Code of Conduct](
+        https://github.com/mscaudill/tabbed/mousefinder/master/CODE_OF_CONDUCT.md)
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true

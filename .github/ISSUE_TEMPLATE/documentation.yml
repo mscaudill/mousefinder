@@ -1,0 +1,21 @@
+name: 📖 Documentation
+description: Documentation needs clarification.
+labels: [documentation]
+title: "[DOCS]: <Title>"
+body:
+
+  # Documentation location
+  - type: input
+    attributes:
+      label: Location
+      placeholder: "mousefinder.readers.VideoReader"
+    validations:
+      required: true
+
+  # What needs clarifying?
+  - type: textarea
+    attributes:
+      label: >
+        Please describe why the documentation needs clarifying.
+    validations:
+      required: true
