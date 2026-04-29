@@ -223,18 +223,19 @@ if __name__ == '__main__':
 
     import time
     fp  = (
-        '/media/matt/compute/PAC_Data/videos/'
-        '5879_Left_group B-S_no rest_video.webm'
+        '/media/matt/compute/PAC_Data/videos/5879_Left_group B-S_no rest_video.webm'
     )
 
-    fp = '/media/matt/Magnus/vishnu_video_track/small_video.mpg'
+    #fp = '/media/matt/Magnus/vishnu_video_track/small_video.mpg'
 
     t0 = time.perf_counter()
     #reader = WebmReader(fp)
     reader = VideoReader(fp)
+    """
     for idx, frame in enumerate(reader):
         x = frame
         print(idx)
 
     print(f'Read complete in {time.perf_counter() - t0} secs')
+    """
 
