@@ -79,6 +79,20 @@ class VideoReader:
 
         return float(result)
 
+    @property
+    def keyspacing(self) -> int:
+        """Returns the spacing between keyframes assuming the first frame is
+        a key frame and the spacing is contant.
+        """
+
+        with av.open(self.path) as container:
+            container.streams.video[sid].thread_type = 'AUTO'
+            for idx, frame in enumerate(container.decode(video=sid)):
+                if frame.keyframe and idx > 0:
+                    spacing = idx
+
+        return spacing
+
     def creation_time(
         self,
         fmt: str = '%m%d%Y%H%M%S',
@@ -117,7 +131,7 @@ class VideoReader:
         self,
         index: int | Sequence[int],
         **kwargs,
-    ) -> npt.NDArray:
+    ) -> list[int, npt.NDArray]:
         """Seeks to the closest keyframe for each indexed frame in index.
 
         This method defaults to returning the closest keyframe preceding the
@@ -132,8 +146,7 @@ class VideoReader:
                 see pyav container docs for details.
 
         Returns:
-            A 2-D or 3-D array representing the keyframe(s) closest to index.
-            The shape is len(indices) x height x width
+            A list of tuples of frame indices and formatted keyframe images.
 
         Raises:
             If the time_base, frame_rate or start_time of the stream is None,
@@ -144,7 +157,7 @@ class VideoReader:
         # normalize negative indices
         indices = [len(self) + idx if idx < 0 else idx for idx in indices]
 
-        result = np.zeros((len(indices), *self.shape[1:]), dtype=np.uint8)
+        result = []
         with av.open(self.path) as container:
 
             vstream = container.streams.video[self.stream_id]
@@ -154,14 +167,17 @@ class VideoReader:
             start_time = vstream.start_time
             for idx, frame_idx in enumerate(indices):
 
+                # seek to presentation time = sec / time_base
                 sec = frame_idx / rate
-                timestamp = int(sec / time_base) + start_time
+                pts = round(sec / time_base + start_time)
+                container.seek(pts, stream=vstream, **kwargs)
 
-                container.seek(timestamp, stream=vstream, **kwargs)
-                frame = next(iter(container.decode(video=self.stream_id)))
-                result[idx] = self.formatter(frame)
+                frame = next(container.decode(video=self.stream_id))
+                img = self.formatter(frame)
+                index = round(frame.pts * time_base * rate)
+                result.append((index, img))
 
-        return np.squeeze(result)
+        return result
 
     def __iter__(self) -> Iterator[tuple[int, npt.NDArray]]:
         """Yields frames from this VideoReader."""
@@ -217,25 +233,3 @@ class WebmReader(VideoReader):
                 count = int(duration / av.time_base * self.sample_rate)
 
         return int(count), frame.height, frame.width
-
-
-if __name__ == '__main__':
-
-    import time
-    fp  = (
-        '/media/matt/compute/PAC_Data/videos/5879_Left_group B-S_no rest_video.webm'
-    )
-
-    #fp = '/media/matt/Magnus/vishnu_video_track/small_video.mpg'
-
-    t0 = time.perf_counter()
-    #reader = WebmReader(fp)
-    reader = VideoReader(fp)
-    """
-    for idx, frame in enumerate(reader):
-        x = frame
-        print(idx)
-
-    print(f'Read complete in {time.perf_counter() - t0} secs')
-    """
-

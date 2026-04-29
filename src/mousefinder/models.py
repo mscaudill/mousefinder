@@ -56,7 +56,7 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
     def estimate(
         self,
         size: int | None = None,
-        thresholder = threshold_li,
+        thresholder=threshold_li,
         **kwargs,
     ) -> None:
         """Estimates the integer threshold that best distinguishes the mouse
@@ -69,8 +69,8 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
         Returns:
             None
         """
-        
-        frame = self.reader.keyseek(0)
+
+        _, frame = self.reader.keyseek(0)[0]
         self.lighting_blur_ = frame.shape[0] // 20 if size is None else size
 
         img = frame[*self.roi.region]
@@ -98,9 +98,9 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
             center-of-mass is predicted to be relative to this model's roi.
         """
 
-        result: npt.NDArray[np.float64] = np.nan* np.ones(2)
+        result: npt.NDArray[np.float64] = np.nan * np.ones(2)
 
-        _, frame = frame_tuple 
+        _, frame = frame_tuple
         x = frame[*self.roi.region].astype(float)
         # correct lighting, smooth out gravel and threshold
         corrected = x / gaussian_filter(x, self.lighting_blur_)
@@ -113,15 +113,16 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
         labeled, cnt = label(bool_img)
         if cnt == 0:
             return np.nan * np.ones(2)
-        
+
         if cnt == 1:
-            return np.mean(np.nonzero(bool_img, axis=-1))
+            return np.mean(np.nonzero(bool_img), axis=-1)
 
         # get largest 2 regions
         regions = measure.regionprops(labeled)
         sorted_regions = sorted(regions, key=lambda r: r.area, reverse=True)[:2]
-        ratios = [ r.area * r.perimeter / measure.perimeter(
-                r.image_convex) for r in sorted_regions
+        ratios = [
+            r.area * r.perimeter / max(1, measure.perimeter(r.image_convex))
+            for r in sorted_regions
         ]
 
         return sorted_regions[np.argmax(ratios)].centroid
@@ -236,19 +237,3 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
             )
 
         return result
-
-if __name__ == '__main__':
-
-    base = '/media/matt/compute/PAC_Data/videos/'
-    name = '5879_Left_group B-S_no rest_video.webm'
-    #name = '5895_Right_group B-S_video.webm'
-    # name = 'No.6489 left_2022-02-09_13_55_22 (2).webm'
-    # name = 'No.6503 right_2022-02-08_15_27_48.webm'
-    # name = '5876_Left_group_B-S_corrected30secs.webm'
-    path = base + name
-    reader = readers.WebmReader(path)
-    config = PCGC()
-    roi = ROI.from_PCG(reader, config)
-    model = PCG(reader, roi, config)
-    model.estimate()
-    results = model(ncores=10, saving=False, chunksize=200)

@@ -151,8 +151,9 @@ class ROI:
             An ROI instance.
         """
 
-        # remove mouse by MIP across 2 separated images
-        mip = np.max(reader.keyseek(frames), axis=0)
+        # remove mouse by MIP across separated images
+        imgs = np.stack([img for _, img in reader.keyseek(frames)])
+        mip = np.max(imgs, axis=0)
         # get edges & convolve removing wire & small structures
         edges = filt(mip, mode='constant', cval=0)
         convolved = ndimage.maximum_filter(edges, size=size)
@@ -196,18 +197,3 @@ class ROI:
         """
 
         raise NotImplementedError
-
-if __name__ == '__main__':
-
-    base = '/media/matt/Magnus/PAC_Data/videos/'
-    name = '5879_Left_group B-S_no rest_video.webm'
-    # name = '5895_Right_group B-S_video.webm'
-    # name = 'No.6489 left_2022-02-09_13_55_22 (2).webm'
-    #name = 'No.6503 right_2022-02-08_15_27_48.webm'
-    path = base + name
-
-    reader = readers.WebmReader(path)
-    config = configs.PCGC()
-    roi = ROI.from_PCG(reader, config)
-    roi.plot(reader.keyseek(10000))
-
