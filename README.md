@@ -313,9 +313,104 @@ and detect performs the detection of the mouse on each frame. Estimate will need
 to be called prior to detection
 
 ```python
-# the size parameter is in pixels and is used to blur the image for light
-# intensity correction if None it defaults to 1/20th the height of the video
-model.estimate(size=None)
-
+help(model.estimate)
 ```
 
+*Output*
+```
+estimate(
+    sigma: int | None = None,
+    thresholder=<function threshold_li at 0x7fbfe1beda80>
+) -> None method of mousefinder.models.PCGTop instance
+    Estimates the integer threshold that best distinguishes the mouse
+    from the background.
+
+    The threshold computed by this method is the threshold after adjusting
+    for light intensity changes by gaussian blur correction.
+
+    Args:
+        sigma:
+            The standard deviation of the gaussian for correcting the light
+            intensity changes across the image. If None, this value defaults
+            to 1/20 the height of the image.
+        thresholder:
+            A callable thresholding function that accepts an image and
+            returns a integer or float value. The default is the
+            threshold_li function from the skimage library.
+
+    Returns:
+        None
+```
+
+This function computes a threshold on images that have been adjusted for
+light-intensity changes. You can see these light variations in the sample gif
+video at the top of this page. Lets call the estimate method using the default
+sigma
+
+```python
+model.estimate()
+print(model.threshold_)
+```
+
+*Output*
+```
+np.float(0.7696747)
+```
+
+Now that we have a threshold we are ready to call the detect method
+```python
+help(model.detect)
+```
+
+*Output*
+```
+detect(
+    *,
+    size: int = 10,
+    path: pathlib._local.Path | str | None = None,
+    ncores: int | None = None,
+    chunksize: int = 100,
+    verbose: bool = True,
+    saving: bool = True
+) -> numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[~_ScalarT]]
+    
+    Concurrently detects mouse coordinates from each frame of this
+    Detector's data.
+
+    Args:
+        size:
+            The number of pixel standard deviations used in gaussian
+            blurring to reduce discontinuities in the pixel values of the
+            frame. This value should be large enough to smooth neighboring
+            dark values in the gravel bed while being small enough to not
+            blur the mouse position unreasonably. For the PCGC
+            configuration, the default value is 10 pixel smoothing.
+        path:
+            A path or string to a dir where the coordinates will be saved
+            to. If None, the coordinates will be saved to the same directory
+            as the video data. The name of the saved file will match the
+            this Model's reader path name but with '_coordinates' appended
+            to the name.
+        ncores:
+            The number of processing cores to utilize. If None, the total
+            number of available cores will be used. If 1, a single core will
+            be used and the data will be processed non-concurrently.
+        chunksize:
+            The (approximate) number of frames to submit to a processing
+            worker for detection at one time. This reduces data transfers
+            and can significantly speed-up the detection but consumes
+            memory. The default value of 100 frames per processor is a good
+            balance.
+        verbose:
+            Boolean indicating if progress should be printed to stdout.
+        saving:
+            A boolean indicating if the coordinates should be saved to path
+            before returning them.
+
+    Returns:
+        An ndarray of shape (n, 2) containing the float row and
+        column coordinates for each of the n frames of this Model's reader
+```
+
+This is the model's action method. It will use the threshold and locate the
+mouse on each frame using as many cores as you allow.
