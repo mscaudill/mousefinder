@@ -142,6 +142,51 @@ print(keyframes)
 Notice the 128th frame was a keyframe but the 300th one was not so keyseek
 fetched the 256th frame (i.e. the prior keyframe).
 
+### Configurations
+
+Configurations are just dataclasses that keep track of metadata about the
+recording chamber(s). Most importantly, the contain the dimensions of the
+chambers which allows MouseFinder to compute pixel to cm scales. Here is the
+Pinnacle Circular Chamber.
+
+```python
+from mousefinder.configurations import PCGC
+
+help(PCGC)
+```
+
+*Output*
+```
+class PCGC(Configuration)
+ |  PCGC(
+ |      name: str = 'Pinnacle Circular Gravel',
+ |      manufacturer: str = 'Pinnacle',
+ |      material: str = 'plastic',
+ |      bottom: str = 'gravel',
+ |      shape: str = 'circle',
+ |      height: float = 24,
+ |      width: float = 24
+ |  ) -> None
+ |
+ |  A representation of Pinnacle's circular gravel bottomed chamber.
+ |
+ |  Attributes:
+ |      name:
+ |          The descriptive name of this dataclass.
+ |      manufacturer:
+ |          The name of this chamber's manufacturer.
+ |      material:
+ |          The string name of the material used in this chamber.
+ |      bottom:
+ |          The string name of the material that lines the chamber bottom.
+ |      shape:
+ |          The shape of the arena within the chamber.
+ |      height:
+ |          The vertical dimension of the chamber.
+ |      width:
+ |          The horizontal dimension of the chamber.
+```
+
 
 
 
