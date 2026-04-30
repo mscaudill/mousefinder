@@ -44,7 +44,7 @@
     https://github.com/jax-ml/jax) to target `ndimage` operations to GPUs.
  
 - **Extensible**:
-    MouseFinder's models are simple callable's that can be easily extended to
+    MouseFinder's models are simple callables that can be easily extended to
     address animal tracking under a variety of experimental conditions;
     different chamber geometries, different viewing angles, enrichment
     distractors etc.  
@@ -52,4 +52,42 @@
     > angles within the next two or three releases of MouseFinder.
 
 ## Usage
+```ipython
+from mousefinder.models import PCGTop
+
+>>> help(PCGTop)
+```
+
+*Output*
+```
+class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
+    """A model for mouse center-of-mass detection for Pinnacle's circular
+    chamber with a gravel bottom and a top-down camera angle.
+
+    Attrs:
+        reader:
+            An iterable VideoReader instance (see mousefinder.readers).
+        roi:
+            A region of interest (ROI) instance (see mousefinder.rois)
+        config:
+            A chamber configuration data class. For this model, this will usually
+            be the PCGC configuration.
+    """
+
+    def __init__(
+        self,
+        reader: readers.VideoReader,
+        roi: ROI,
+        config: Configuration,
+    ) -> None:
+        """Initialize this model with a reader, an roi and configuration."""
+
+        self.reader = reader
+        self.roi = roi
+        self.configuration = config
+        self._ctx = mp.get_context('spawn')
+
+        self.threshold_: int | None = None
+```
+
 
