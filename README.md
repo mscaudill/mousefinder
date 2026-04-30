@@ -14,9 +14,9 @@
 
 --------------------
 
-<h1 align="left">
+<h1 align="center">
     <img src="https://github.com/mscaudill/mousefinder/blob/master/imgs/5895_R_short_sample.gif?raw=true"
-    style="width:400px;height:auto;"/>
+    style="width:600px;height:auto;"/>
 </h1>
 
 ## Key Features
