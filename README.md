@@ -41,7 +41,7 @@
     MouseFinder's tracking models support multiprocessing of video frames. For an
     hour-long recording and frame size of 528 x 960, 10 CPUs will track all target
     positions in 600 seconds.
-    > [!NOTE]
+    > [!NOTE]  
     > Our roadmap for MouseFinder includes further speed improvements using [JAX](
     https://github.com/jax-ml/jax) to target `ndimage` operations to GPUs.
  
