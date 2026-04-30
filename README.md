@@ -269,9 +269,14 @@ roi.plot(img)
     style="width:600px;height:auto;"/>
 </h1>
 
+    > Our roadmap aims to allow users to custom draw ROIs with a new constructor
+    > called `from_draw` in the next release of Mousefinder. 
 
 
-
+### Tracking with Models
+We are now ready to pull everything in this guide together and call our first
+model. Lets build a Pinnacle Circular Gravel Chamber model with a top-down
+camera view...
 
 ```python
 from mousefinder.models import PCGTop
