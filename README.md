@@ -52,14 +52,14 @@
     > angles within the next two or three releases of MouseFinder.
 
 ## Usage
-```ipython
+```python
 from mousefinder.models import PCGTop
 
 >>> help(PCGTop)
 ```
 
 *Output*
-```
+```python
 class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
     """A model for mouse center-of-mass detection for Pinnacle's circular
     chamber with a gravel bottom and a top-down camera angle.
