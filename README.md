@@ -59,7 +59,7 @@ will explore each.
 ### Reading Data
 
 MouseFinder's VideoReader is an iterable reader of the frames in the video that
-yields numpy arrays and tracks important video information like the frame rate.
+yields indexed numpy arrays and stores important metadata like the frame rate.
 Below we open a webm video file. The WebmReader is a VideoReader type specific
 to webm files. If you have an mpg or mp4 you can use the VideoReader in place of
 the WebmReader.
@@ -93,6 +93,56 @@ creation_time
 keyseek
 Type help(WebmReader) for full documentation
 ```
+
+```python
+# video readers are iterables yielding an index and numpy array of data
+for idx, frame in reader:
+    print(idx, frame.shape)
+    # stop after 5 frames
+    if idx > 4:
+        break
+```
+
+*Output*
+```
+0, (528, 960)
+1, (528, 960)
+2, (528, 960)
+3, (528, 960)
+4, (528, 960)
+```
+
+```python
+# you can also seek to the prior keyframe(s)
+# lets get the keyframes closest to frames 128 and 300 
+keyframes = reader.keyseek([128, 300])
+print(keyframes)
+```
+
+*Output*
+```
+[(128,
+  array([[ 23,  23,  24, ..., 100,  97,  94],
+         [ 25,  24,  21, ..., 101,  99,  96],
+         [ 31,  29,  25, ..., 101, 101,  99],
+         ...,
+         [ 95,  96,  97, ...,  62,  52,  37],
+         [ 95,  96,  97, ...,  66,  56,  42],
+         [ 95,  96,  97, ...,  68,  58,  43]], shape=(528, 960), dtype=uint8)),
+ (256,
+  array([[ 27,  23,  19, ..., 100, 100, 100],
+         [ 30,  27,  22, ..., 100, 100, 100],
+         [ 35,  31,  27, ..., 100, 100, 100],
+         ...,
+         [ 95,  95,  95, ...,  63,  53,  40],
+         [ 95,  95,  95, ...,  63,  53,  40],
+         [ 95,  95,  95, ...,  63,  53,  40]], shape=(528, 960), dtype=uint8))]
+```
+
+Notice the 128th frame was a keyframe but the 300th one was not so keyseek
+fetched the 256th frame (i.e. the prior keyframe).
+
+
 
 
 
