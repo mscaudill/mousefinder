@@ -52,6 +52,50 @@
     > angles within the next two or three releases of MouseFinder.
 
 ## Usage
+MouseFinder has  5 datatypes; `VideoReader`, `Configuration`, `ROI`, `Model` and
+ 'MPLWriter' that work together to support animal tracking. This usage guide
+will explore each.
+
+### Reading Data
+
+MouseFinder's VideoReader is an iterable reader of the frames in the video that
+yields numpy arrays and tracks important video information like the frame rate.
+Below we open a webm video file. The WebmReader is a VideoReader type specific
+to webm files. If you have an mpg or mp4 you can use the VideoReader in place of
+the WebmReader.
+
+Let's build a reader...
+
+```python
+from mousefinder.readers import VideoReader, WebmReader
+
+# use your video path
+path = '/media/matt/compute/PAC_Data/5895_Right.webm'
+reader = WebmReader(path)
+
+print(reader)
+```
+
+*Output*
+```
+WebmReader
+--- Attributes ---
+path: PosixPath('/m...S_video.webm')
+stream_id: 0
+formatter: <function fro...x7f45daab3420>
+--- Properties ---
+format: 'yuv420p'
+key_spacing: 128
+sample_rate: 29.41176470588235
+shape: (106683, 528, 960)
+--- Methods ---
+creation_time
+keyseek
+Type help(WebmReader) for full documentation
+```
+
+
+
 ```python
 from mousefinder.models import PCGTop
 
