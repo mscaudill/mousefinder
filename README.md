@@ -9,6 +9,7 @@
 | [**Usage**](#usage)
 | [**Dependencies**](#dependencies)
 | [**Installation**](#installation)
+| [**Roadmap**](#roadmap)
 | [**Contributing**](#contributing)
 | [**Acknowledgments**](acknowledgements)
 
@@ -257,7 +258,7 @@ from mousefinder.rois import ROI
 
 path = '/media/matt/compute/PAC_Data/5895_Right_group B-S_video.webm'
 reader = WebmReader(path)
-roi = ROI.from_PCG(reader, config=PCGC)
+roi = ROI.from_PCG(reader, config=PCGC())
 
 # plot the roi using the first image of the video
 idx, img = reader.keyseek(0)[0]
@@ -281,39 +282,40 @@ camera view...
 ```python
 from mousefinder.models import PCGTop
 
->>> help(PCGTop)
+# to instantiate the model we need to give its constructor a reader, roi and
+# configuration instance we created above
+
+model = PCGTop(reader, roi, config=PCGC())
+print(model)
 ```
 
 *Output*
-```python
-class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
-    """A model for mouse center-of-mass detection for Pinnacle's circular
-    chamber with a gravel bottom and a top-down camera angle.
+```
+PCGTop
+--- Attributes ---
+reader: WebmReader(pa...7c40>) -> None
+roi: <mousefinder....x7f213ad17620>
+configuration: PCGC(name='Pi...=24, width=24)
+threshold_: None
+--- Properties ---
 
-    Attrs:
-        reader:
-            An iterable VideoReader instance (see mousefinder.readers).
-        roi:
-            A region of interest (ROI) instance (see mousefinder.rois)
-        config:
-            A chamber configuration data class. For this model, this will usually
-            be the PCGC configuration.
-    """
-
-    def __init__(
-        self,
-        reader: readers.VideoReader,
-        roi: ROI,
-        config: Configuration,
-    ) -> None:
-        """Initialize this model with a reader, an roi and configuration."""
-
-        self.reader = reader
-        self.roi = roi
-        self.configuration = config
-        self._ctx = mp.get_context('spawn')
-
-        self.threshold_: int | None = None
+--- Methods ---
+detect
+estimate
+printable
+save
+Type help(PCGTop) for full documentation
 ```
 
+The two primary methods of the model are the `estimate` and `detect` methods.
+Estimate estimates a threshold for distinguishing the mouse from the background
+and detect performs the detection of the mouse on each frame. Estimate will need
+to be called prior to detection
+
+```python
+# the size parameter is in pixels and is used to blur the image for light
+# intensity correction if None it defaults to 1/20th the height of the video
+model.estimate(size=None)
+
+```
 
