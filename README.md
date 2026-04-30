@@ -31,21 +31,25 @@
     or multiple target tracking, deep-learning models are still the best way to go.
 
 - **Fast and Scalable**:  
-    To achieve fast video frame reading, MouseFinder has a dedicated `VideoReader`
-    capable of decoding individual video frames in less than 400 microseconds. For
-    an hour-long recording and frame size of 528 x 960, the VideoReader will read
-    all the frames in 38 seconds on a 3.4 GHz CPU. We are indebted to [pyav's](
-    https://github.com/pyav-org/pyav) multithreading support for this performance.
-    MouseFinder's detection algorithms rely soley on scipy's `ndimage` and numpy
-    array operations backed by fast C++ code. To further enhance speed,
-    MouseFinder's tracking models support multiprocessing of video frames. For an
-    hour-long recording and frame size of 528 x 960, 10 CPUs will track all target
-    positions in 600 seconds.
-     > [!NOTE]  
-     > Our roadmap for MouseFinder includes further speed improvements using [JAX](
-     https://github.com/jax-ml/jax) to target `ndimage` operations to GPUs.
+    MouseFinder has a dedicated `VideoReader` capable of decoding individual
+    medium-sized (528 x 960) video frames in less than 400 microseconds. We are
+    indebted to [pyav's]( https://github.com/pyav-org/pyav) multithreading support
+    for this performance.  MouseFinder's detection algorithms rely soley on
+    scipy's `ndimage` and numpy array operations backed by fast C++ code.
+    Additionally, MouseFinder's tracking models support multiprocessing. Taken
+    together, a mouse in a video of 104000 frames of size 528 x 960 can be tracked
+    in 600 seconds using 10 3.4GHz CPUs.
+    > Our roadmap for MouseFinder includes further speed improvements using
+    > [JAX](
+    https://github.com/jax-ml/jax) to target `ndimage` operations to GPUs.
  
 - **Extensible**:
+    MouseFinder's models are simple callable's that can be easily extended to
+    address animal tracking under a variety of experimental conditions;
+    different chamber geometries, different viewing angles, enrichment
+    distractors etc.  
+    > Our roadmap aims to address different chamber geometries and viewing
+    > angles within the next two or three releases of MouseFinder.
 
-
+## Usage
 
