@@ -14,6 +14,11 @@
 
 --------------------
 
+<h1 align="left">
+    <img src="https://github.com/mscaudill/mousefinder/blob/master/imgs/5895_R_short_sample.gif?raw=true"
+    style="width:300px;height:auto;"/>
+</h1>
+
 ## Key Features
 
 - **No Training Required**:
