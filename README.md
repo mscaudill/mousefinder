@@ -269,8 +269,8 @@ roi.plot(img)
     style="width:600px;height:auto;"/>
 </h1>
 
-    > Our roadmap aims to allow users to custom draw ROIs with a new constructor
-    > called `from_draw` in the next release of Mousefinder. 
+> Our roadmap aims to allow users to custom draw ROIs with a new constructor
+> called `from_draw` in the next release of Mousefinder. 
 
 
 ### Tracking with Models
