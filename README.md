@@ -38,7 +38,7 @@
     scipy's `ndimage` and numpy array operations backed by fast C++ code.
     Additionally, MouseFinder's tracking models support multiprocessing. Taken
     together, a mouse in a video of 104000 frames of size 528 x 960 can be tracked
-    in 600 seconds using 10 3.4GHz CPUs.
+    in 600 seconds using ten 3.4GHz CPUs.
     > Our roadmap for MouseFinder includes further speed improvements using
     > [JAX](
     https://github.com/jax-ml/jax) to target `ndimage` operations to GPUs.
@@ -192,6 +192,82 @@ class PCGC(Configuration)
  |      width:
  |          The horizontal dimension of the chamber.
 ```
+
+### Defining an ROI
+Regions of Interest help MouseFinder's models look in a specific area of
+a video for a mouse. The ROI class supports building these regions of interest
+automatically. Lets build an ROI instance.
+
+```python
+from mousefinder.rois import ROI
+
+# To construct an ROI for the Pinnacle Circular Gravel chamber, we call the
+`from_PCG` class method
+
+help(ROI.from_PCG)
+```
+
+*Output*
+```
+from_PCG(
+    reader: mousefinder.readers.VideoReader,
+    config: mousefinder.configurations.Configuration,
+    frames: collections.abc.Sequence[int] = (0, 1000),
+    filt=<function sobel at 0x7f7c2e6bc040>,
+    size: int = 10,
+    thresholder=<function threshold_li at 0x7f7c2e6bf1a0>,
+    **kwargs
+) -> Self class method of mousefinder.rois.ROI
+    Returns the circular region of interest of this chamber.
+
+    Args:
+        path:
+            Path to a video file with this chamber configuration.
+        frames:
+            A sequence of frames whose max intensity projection will be
+            taken as the background image (i.e. no mouse present). These
+            frames should be separated by enough time so that the mouse is
+            unlikely to be in the same position in each frame. Defaults to
+            the first and 1000-th frame of the video.
+        filt:
+            An edge detection filter function consisting of two kernels for
+            estimating the vertical and horizontal gradients.
+        size:
+            The size of the kernel for smoothing away the dark spots in the
+            gravel of the chamber and the electrode wires.
+        thresholder:
+            Am skimage thresholding function for separating the mouse from
+            the background.
+        kwargs:
+            An optional 'size' may be passed for roi detection that will
+            supersede this configuration's size attribute and any
+            valid kwarg for the thresholder function.
+
+    Returns:
+        An ROI instance.
+```
+
+The helper tells us we need to supply a reader and a configuration and this
+method will take care of constructing an ROI for us.
+
+```python
+from mousefinder.readers import WebmReader
+from mousefinder.configurations import PCGC
+from mousefinder.rois import ROI
+
+path = '/media/matt/compute/PAC_Data/5895_Right_group B-S_video.webm'
+reader = WebmReader(path)
+roi = ROI.from_PCG(reader, config=PCGC)
+
+# plot the roi using the first image of the video
+idx, img = reader.keyseek(0)[0]
+roi.plot(img)
+```
+
+<h1 align="center">
+    <img src="https://github.com/mscaudill/mousefinder/blob/master/imgs/roi_5895_R.png?raw=true"
+    style="width:600px;height:auto;"/>
+</h1>
 
 
 
