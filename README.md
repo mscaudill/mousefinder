@@ -53,8 +53,14 @@
 
 ## Usage
 MouseFinder has  5 datatypes; `VideoReader`, `Configuration`, `ROI`, `Model` and
- 'MPLWriter' that work together to support animal tracking. This usage guide
+`MPLWriter` that work together to support animal tracking. This usage guide
 will explore each.
+
+- [Reading Data](#Reading-Data)
+- [Chamber Configurations](#Chamber-Configurations)
+- [Defining an ROI](#Defining-an-ROI)
+- [Tracking with Models](#Tracking-with-Models)
+- [Viewing Tracking Results](#Viewing-Tracking-Results)
 
 ### Reading Data
 
@@ -142,7 +148,7 @@ print(keyframes)
 Notice the 128th frame was a keyframe but the 300th one was not so keyseek
 fetched the 256th frame (i.e. the prior keyframe).
 
-### Configurations
+### Chamber Configurations
 
 Configurations are just dataclasses that keep track of metadata about the
 recording chamber(s). Most importantly, the contain the dimensions of the
