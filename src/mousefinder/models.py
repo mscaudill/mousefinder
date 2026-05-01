@@ -55,26 +55,34 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
     def estimate(
         self,
-        size: int | None = None,
+        sigma: int | None = None,
         thresholder=threshold_li,
-        **kwargs,
     ) -> None:
         """Estimates the integer threshold that best distinguishes the mouse
-        pixels from the background pixels.
+        from the background.
+
+        The threshold computed by this method is the threshold after adjusting
+        for light intensity changes by gaussian blur correction.
 
         Args:
-            size:
-            kwargs:
-
+            sigma:
+                The standard deviation of the gaussian for correcting the light
+                intensity changes across the image. If None, this value defaults
+                to 1/20 the height of the image.
+            thresholder:
+                A callable thresholding function that accepts an image and
+                returns a integer or float value. The default is the
+                threshold_li function from the skimage library.
+        
         Returns:
             None
         """
 
         _, frame = self.reader.keyseek(0)[0]
-        self.lighting_blur_ = frame.shape[0] // 20 if size is None else size
+        self.sigma_ = frame.shape[0] // 20 if sigma is None else sigma
 
         img = frame[*self.roi.region]
-        blurred = gaussian_filter(img, sigma=self.lighting_blur_)
+        blurred = gaussian_filter(img, sigma=self.sigma_)
         corrected = img / blurred
         self.threshold_ = thresholder(corrected)
 
@@ -90,8 +98,12 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
                 A frame index and image frame 2-tuple yielded by this Model's
                 reader during iteration.
             size:
-                The size of the kernel used to reduce discontinuities in the
-                pixel values of the frame.
+                The number of pixel standard deviations used in gaussian
+                blurring to reduce discontinuities in the pixel values of the
+                frame. This value should be large enough to smooth neighboring
+                dark values in the gravel bed while being small enough to not
+                blur the mouse position unreasonably. For the PCGC
+                configuration, the default value is 10 pixel smoothing.
 
         Returns:
             A 2-el array of row and column indices where the mouse's
@@ -103,7 +115,7 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
         _, frame = frame_tuple
         x = frame[*self.roi.region].astype(float)
         # correct lighting, smooth out gravel and threshold
-        corrected = x / gaussian_filter(x, self.lighting_blur_)
+        corrected = x / gaussian_filter(x, self.sigma_)
         smoothed = gaussian_filter(corrected, sigma=size)
         bool_img = smoothed < self.threshold_
 
@@ -127,7 +139,7 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
         return sorted_regions[np.argmax(ratios)].centroid
 
-    def __call__(
+    def detect(
         self,
         *,
         size: int = 10,
@@ -142,11 +154,12 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
         Args:
             size:
-                The size of the kernel used to reduce discontinuities in the
-                pixel values of the frame. This value should be large enough to
-                smooth neighboring dark values in the gravel bed while being
-                small enough to not blur the mouse position unreasonably. For
-                the PCGC configuration, the default value is 20 pixel smoothing.
+                The number of pixel standard deviations used in gaussian
+                blurring to reduce discontinuities in the pixel values of the
+                frame. This value should be large enough to smooth neighboring
+                dark values in the gravel bed while being small enough to not
+                blur the mouse position unreasonably. For the PCGC
+                configuration, the default value is 10 pixel smoothing.
             path:
                 A path or string to a dir where the coordinates will be saved
                 to. If None, the coordinates will be saved to the same directory

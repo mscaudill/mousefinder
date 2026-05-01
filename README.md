@@ -308,8 +308,8 @@ Type help(PCGTop) for full documentation
 ```
 
 The two primary methods of the model are the `estimate` and `detect` methods.
-Estimate estimates a threshold for distinguishing the mouse from the background
-and detect performs the detection of the mouse on each frame. Estimate will need
+`estimate` estimates a threshold for distinguishing the mouse from the background
+and `detect` performs the detection of the mouse on each frame. Estimate will need
 to be called prior to detection
 
 ```python
