@@ -35,13 +35,12 @@
 
 - **Fast and Scalable**:  
     MouseFinder has a dedicated `VideoReader` capable of decoding individual
-    medium-sized (528 x 960) video frames in less than 400 microseconds. We are
-    indebted to [pyav's]( https://github.com/pyav-org/pyav) multithreading support
-    for this performance.  MouseFinder's detection algorithms rely soley on
-    scipy's `ndimage` and numpy array operations backed by fast C++ code.
-    Additionally, MouseFinder's tracking models support multiprocessing. Taken
-    together, a mouse in a video of 104000 frames of size 528 x 960 can be tracked
-    in 600 seconds using ten 3.4GHz CPUs.
+    medium-sized (528 x 960) video frames in less than 400 microseconds thanks
+    to [pyav's]( https://github.com/pyav-org/pyav) multithreading support.
+    MouseFinder's detection algorithms rely soley on scipy's `ndimage` and numpy
+    array operations backed by fast C++ code.  Additionally, MouseFinder's tracking
+    models support multiprocessing. Taken together, a mouse in a video of 104000
+    frames of size 528 x 960 can be tracked in 600 seconds using ten 3.4GHz CPUs.
     > Our roadmap for MouseFinder includes further speed improvements using
     > [JAX](
     https://github.com/jax-ml/jax) to target `ndimage` operations to GPUs.
