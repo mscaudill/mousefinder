@@ -17,9 +17,9 @@
 
 <p float="left">
   <img src="https://github.com/mscaudill/mousefinder/blob/master/imgs/5895_R_short_sample.gif?raw=true"
-    style="width:600px;height:auto;"/>
+    style="width:400px;height:auto;"/>
   <img src="https://github.com/mscaudill/mousefinder/blob/master/imgs/6489_L_short_sample.gif?raw=true"
-    style="width:500px;height:auto;"/>
+    style="width:400px;height:auto;"/>
 </p>
 
 ## Key Features
