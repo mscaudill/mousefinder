@@ -55,6 +55,7 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
         self.sigma_: float | None = None
         self.threshold_: float | None = None
+        self.mask_: npt.NDArray = self.roi.as_mask()
 
     def estimate(
         self,
@@ -117,8 +118,8 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
         x = frame[*self.roi.region].astype(float)
         # correct lighting, smooth out gravel and threshold
         corrected = x / gaussian_filter(x, self.sigma_)
-        smoothed = gaussian_filter(corrected, sigma=minsize)  # type: ignore
-        bool_img = smoothed < self.threshold_  # type: ignore
+        smoothed = gaussian_filter(corrected, sigma=minsize)
+        bool_img = smoothed < self.threshold_  * self.mask_
 
         # remove small detections
         bool_img = minimum_filter(bool_img, size=minsize)
