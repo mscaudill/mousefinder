@@ -194,7 +194,7 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
         # narrow the estimated parameter types
         assert isinstance(self.threshold_, np.float64)
-        assert isinstance(self.sigma_, np.float64)
+        assert isinstance(self.sigma_, (int, np.float64))
 
         # no hyperthread as VideoReader's already hyperthread
         core_cnt = allocate(self.reader.shape[0], ncores, hyperthread=False)
