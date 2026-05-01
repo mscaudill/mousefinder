@@ -116,7 +116,7 @@ class ROI:
         cls,
         reader: readers.VideoReader,
         config: configs.Configuration,
-        frames: Sequence[int] = (0, -1),
+        frames: Sequence[int] = (0, 1000),
         filt=filters.sobel,
         size: int = 10,
         thresholder=filters.threshold_li,
@@ -132,7 +132,7 @@ class ROI:
                 taken as the background image (i.e. no mouse present). These
                 frames should be separated by enough time so that the mouse is
                 unlikely to be in the same position in each frame. Defaults to
-                the first and last keyframes of the video.
+                the first and 1000-th frames.
             filt:
                 An edge detection filter function consisting of two kernels for
                 estimating the vertical and horizontal gradients.
