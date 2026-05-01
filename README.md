@@ -444,3 +444,45 @@ minimum requirements.
 
 ## Installation
 
+## Roadmap
+
+We've listed a few items throughout that we would like to see done in MouseFinder.
+Below is a summary of our roadmap to be completed by the end of 2026.
+
+1. GPU Processing with [JAX](https://github.com/jax-ml/jax):
+    - MouseFinder primarily relies on scipy's `ndimage` library that enjoys
+      partial support with JAX. We plan on using JAX to dramatically reduce our
+      compute time.
+2. More Models for more configurations:
+    - MouseFinder currently supports only top-down single camera views. We aim
+      to support angled camera positions and multicameras in our models for 3D
+      tracking support.
+3. Custom ROIS:
+    - We will build an alternative constructor allowing users to define ROIs of
+      their choice. This will allow for multiple models to run tracking
+      different mice simultaneously.
+4. Testing:
+    - MouseFinder was built using test-driven development but it lacks formal
+      reproducible pytest at the moment. This is a high-priority item on this
+      roadmap.
+
+## Contributing
+
+We're excited you want to contribute! Please check out our
+[Contribution](
+"https://github.com/mscaudill/mousefinder?tab=contributing-ov-file") guide.
+
+
+## Acknowledgements
+
+------
+
+**This work has been generously supported by the folowing:**
+
+|Agency| Number|
+|--------------|
+|NIH NINDS | 2R01NS100738-08A1 |
+|Private   | Ting Tsung and Wei Fong Chao Foundation at the Jan and Dan Duncan
+Neurological Research Institute at Texas Children's| 
+
+------
