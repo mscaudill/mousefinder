@@ -4,6 +4,7 @@ container and codec type supported by pyav.
 
 import re
 import typing
+import warnings
 from collections.abc import Iterator, Sequence
 from datetime import datetime
 from pathlib import Path
@@ -14,9 +15,10 @@ import numpy as np
 import numpy.typing as npt
 
 from mousefinder import formats
+from mousefinder.core import mixins
 from mousefinder.formats import Formatter
 
-class VideoReader:
+class VideoReader(mixins.ReprMixin):
     """An iterable video stream reader of pyav supported video containers.
 
     This reader provides simple iteration of the frames in the container's video
@@ -80,16 +82,20 @@ class VideoReader:
         return float(result)
 
     @property
-    def keyspacing(self) -> int:
-        """Returns the spacing between keyframes assuming the first frame is
-        a key frame and the spacing is contant.
-        """
+    def key_spacing(self) -> int:
+        """Returns the integer spacing between keyframes.
 
+        This property assumes an even spacing of the keyframes which is
+        generally True in streaming videos used in scientific applications.
+        """
+        
+        sid = self.stream_id
         with av.open(self.path) as container:
             container.streams.video[sid].thread_type = 'AUTO'
             for idx, frame in enumerate(container.decode(video=sid)):
-                if frame.keyframe and idx > 0:
+                if frame.key_frame and idx > 0:
                     spacing = idx
+                    break
 
         return spacing
 
@@ -132,10 +138,10 @@ class VideoReader:
         index: int | Sequence[int],
         **kwargs,
     ) -> list[int, npt.NDArray]:
-        """Seeks to the closest keyframe for each indexed frame in index.
+        """Returns the closest keyframe preceding each indexed frame.
 
-        This method defaults to returning the closest keyframe preceding the
-        indexed frame if the indexed frame is not a keyframe.
+        This method assumes that the spacing of the keyframes is constant. This
+        is generally True for streaming videos in scientific applications.
 
         Args:
             index:
@@ -146,35 +152,37 @@ class VideoReader:
                 see pyav container docs for details.
 
         Returns:
-            A list of tuples of frame indices and formatted keyframe images.
-
-        Raises:
-            If the time_base, frame_rate or start_time of the stream is None,
-            a TypeError is issued.
+            A list of tuples of frame indices and color formatted image arrays.
         """
 
+        # list the indices and normalize negatives & convert to keyframes
         indices = [index] if isinstance(index, int) else index
-        # normalize negative indices
         indices = [len(self) + idx if idx < 0 else idx for idx in indices]
+        spacing = self.key_spacing
+        key_indices = [idx // spacing * spacing for idx in indices]
+
+        # warn if keyseek is seeking the same keyframe multiple times
+        if len(set(key_indices)) < len(key_indices):
+            msg = 'keyseek is returning the same keyframe multiple times'
+            warnings.warn(msg)
 
         result = []
         with av.open(self.path) as container:
 
             vstream = container.streams.video[self.stream_id]
             # pyav allows time_base, rate and start to be None type
-            time_base = float(vstream.time_base)
-            rate = float(vstream.average_rate)
-            start_time = vstream.start_time
-            for idx, frame_idx in enumerate(indices):
+            base = vstream.time_base
+            rate = vstream.average_rate
+            start = vstream.start_time
+            for key_idx in key_indices:
 
-                # seek to presentation time = sec / time_base
-                sec = frame_idx / rate
-                pts = round(sec / time_base + start_time)
+                # seek to presentation time = sec / base
+                pts = int(key_idx / rate / base + start)
                 container.seek(pts, stream=vstream, **kwargs)
 
                 frame = next(container.decode(video=self.stream_id))
                 img = self.formatter(frame)
-                index = round(frame.pts * time_base * rate)
+                index = round(frame.pts * base * rate)
                 result.append((index, img))
 
         return result
