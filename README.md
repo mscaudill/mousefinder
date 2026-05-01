@@ -479,12 +479,10 @@ We're excited you want to contribute! Please check out our
 
 ------
 
-**This work has been generously supported by the folowing:**
+**This work was made possible by generous grants and gifts from:**
 
-|Agency    | Title |
-|--------- |-------|
-|NIH NINDS | 2R01NS100738-08A1 | 
-|Private   | Ting Tsung and Wei Fong Chao Foundation at the Jan and Dan Duncan
-Neurological Research Institute at Texas Children's| 
+- The National Institutes of Health NINDS Grant 2R01NS100738-08A1
+- Ting Tsung and Wei Fong Chao Foundation at the Jan and Dan Duncan
+  Neurological Research Institute at Texas Children's
 
 ------
