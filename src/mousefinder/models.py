@@ -1,4 +1,4 @@
-"""A collection of mouse center-of-mass detection models.
+"""A collection of center-of-mass detection models.
 
 This collection consist of:
     PCGTop:
@@ -8,24 +8,26 @@ This collection consist of:
 
 import multiprocessing as mp
 import time
+import typing
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
-from scipy.ndimage import gaussian_filter, label, minimum_filter, maximum_filter
-from skimage import measure, morphology, transform
+from scipy.ndimage import gaussian_filter, label, minimum_filter
+from skimage import measure
 from skimage.filters.thresholding import threshold_li
 
 from mousefinder import readers
-from mousefinder.configurations import PCGC, Configuration
+from mousefinder.configurations import Configuration
 from mousefinder.core import mixins
 from mousefinder.core.resources import allocate
 from mousefinder.rois import ROI
 
 
 class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
-    """A model for mouse center-of-mass detection for Pinnacle's circular
+    """A model for center-of-mass detection in Pinnacle's circular
     chamber with a gravel bottom and a top-down camera angle.
 
     Attrs:
@@ -51,29 +53,33 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
         self.configuration = config
         self._ctx = mp.get_context('spawn')
 
-        self.threshold_: int | None = None
+        self.sigma_: float | None = None
+        self.threshold_: float | None = None
 
     def estimate(
         self,
         sigma: int | None = None,
-        thresholder=threshold_li,
+        thresholder: Callable[[npt.NDArray], float] = threshold_li,
+        **kwargs,
     ) -> None:
-        """Estimates the integer threshold that best distinguishes the mouse
-        from the background.
+        """Estimates the float threshold that best distinguishes the mouse
+        from the background from an illumniation normalized image.
 
         The threshold computed by this method is the threshold after adjusting
         for light intensity changes by gaussian blur correction.
 
         Args:
             sigma:
-                The standard deviation of the gaussian for correcting the light
-                intensity changes across the image. If None, this value defaults
-                to 1/20 the height of the image.
+                The standard deviation of the gaussian for correcting the uneven
+                illumination. If None, this value defaults to 1/20 the height of
+                the image.
             thresholder:
                 A callable thresholding function that accepts an image and
                 returns a integer or float value. The default is the
                 threshold_li function from the skimage library.
-        
+            kwargs:
+                All keyword arguments are passed to the thresholder.
+
         Returns:
             None
         """
@@ -84,43 +90,38 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
         img = frame[*self.roi.region]
         blurred = gaussian_filter(img, sigma=self.sigma_)
         corrected = img / blurred
-        self.threshold_ = thresholder(corrected)
+        self.threshold_ = thresholder(corrected, **kwargs)
 
+    @typing.no_type_check
     def _worker(
         self,
-        frame_tuple: tuple[int, npt.NDArray],
-        size: int,
+        indexed_frame: tuple[int, npt.NDArray],
+        minsize: int,
     ) -> npt.NDArray:
         """Detects the mouse's center-of-mass on a single frame of data.
 
         Args:
-            frame_tuple:
+            indexed_frame:
                 A frame index and image frame 2-tuple yielded by this Model's
                 reader during iteration.
-            size:
-                The number of pixel standard deviations used in gaussian
-                blurring to reduce discontinuities in the pixel values of the
-                frame. This value should be large enough to smooth neighboring
-                dark values in the gravel bed while being small enough to not
-                blur the mouse position unreasonably. For the PCGC
-                configuration, the default value is 10 pixel smoothing.
+            minsize:
+                Objects below minsize x minsize pixels will be removed prior to
+                segmentation.
 
         Returns:
             A 2-el array of row and column indices where the mouse's
             center-of-mass is predicted to be relative to this model's roi.
         """
 
-        result: npt.NDArray[np.float64] = np.nan * np.ones(2)
-
-        _, frame = frame_tuple
+        _, frame = indexed_frame
         x = frame[*self.roi.region].astype(float)
         # correct lighting, smooth out gravel and threshold
         corrected = x / gaussian_filter(x, self.sigma_)
-        smoothed = gaussian_filter(corrected, sigma=size)
-        bool_img = smoothed < self.threshold_
+        smoothed = gaussian_filter(corrected, sigma=minsize)  # type: ignore
+        bool_img = smoothed < self.threshold_  # type: ignore
 
         # remove small detections
-        bool_img = minimum_filter(bool_img, size=size)
+        bool_img = minimum_filter(bool_img, size=minsize)
 
         labeled, cnt = label(bool_img)
         if cnt == 0:
@@ -142,7 +143,7 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
     def detect(
         self,
         *,
-        size: int = 10,
+        minsize: int = 10,
         path: Path | str | None = None,
         ncores: int | None = None,
         chunksize: int = 100,
@@ -153,13 +154,11 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
         Detector's data.
 
         Args:
-            size:
-                The number of pixel standard deviations used in gaussian
-                blurring to reduce discontinuities in the pixel values of the
-                frame. This value should be large enough to smooth neighboring
-                dark values in the gravel bed while being small enough to not
-                blur the mouse position unreasonably. For the PCGC
-                configuration, the default value is 10 pixel smoothing.
+            minsize:
+                The minimum size in pixels along rows and columns that objects
+                within the images must achieve to be included in the
+                segmentation. Objects below minsize x minsize pixels are
+                excluded from detection. The default is 10 pixels.
             path:
                 A path or string to a dir where the coordinates will be saved
                 to. If None, the coordinates will be saved to the same directory
@@ -195,10 +194,11 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
         # narrow the estimated parameter types
         assert isinstance(self.threshold_, np.float64)
+        assert isinstance(self.sigma_, np.float64)
 
         # no hyperthread as VideoReader's already hyperthread
         core_cnt = allocate(self.reader.shape[0], ncores, hyperthread=False)
-        func = partial(self._worker, size=size)
+        func = partial(self._worker, minsize=minsize)
 
         results = []
         start = time.perf_counter()
@@ -228,7 +228,7 @@ class PCGTop(mixins.ReprMixin, mixins.SavingMixin, mixins.PrintMixin):
 
         # shift the coordinates relative to ROI upper-left
         corner = np.array([self.roi.region[0].start, self.roi.region[1].start])
-        result = np.array(results) + corner
+        result: npt.NDArray = np.array(results) + corner
 
         if saving:
 

@@ -1,12 +1,6 @@
 """Tools for measuring or assigning memory, compute or file resources."""
 
-import os
-import platform
-from datetime import datetime
-from pathlib import Path
-
 import psutil
-from statx import statx
 
 
 def allocate(

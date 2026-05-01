@@ -1,22 +1,22 @@
-"""A Video reader iterable supporting single video stream reading from any
+"""A VideoReader supporting iterative reading of single video stream data from any
 container and codec type supported by pyav.
 """
 
 import re
-import typing
 import warnings
 from collections.abc import Iterator, Sequence
 from datetime import datetime
+from fractions import Fraction
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import av
-import numpy as np
 import numpy.typing as npt
 
 from mousefinder import formats
 from mousefinder.core import mixins
 from mousefinder.formats import Formatter
+
 
 class VideoReader(mixins.ReprMixin):
     """An iterable video stream reader of pyav supported video containers.
@@ -49,13 +49,36 @@ class VideoReader(mixins.ReprMixin):
     @property
     def shape(self) -> tuple[int, int, int]:
         """Returns a shape tuple containing the number, height & width of frames
-        in this VideoReader."""
+        in this VideoReader.
+
+        Some video formats do not store the video's frame count. In this case,
+        the number of frames is estimated from the stream or container duration.
+        """
 
         with av.open(self.path) as container:
+            container.seek(0)
             stream = container.streams.video[self.stream_id]
-            shape = stream.frames, stream.height, stream.width
+            frame = next(container.decode(video=self.stream_id))
 
-        return shape
+            # if the stream has the frames ready to return
+            if stream.frames > 0:
+                return stream.frames, frame.height, frame.width
+
+            base = stream.time_base
+            rate = stream.average_rate
+            assert isinstance(base, Fraction)
+            assert isinstance(rate, Fraction)
+            # estimate from stream if it has a duration
+            if isinstance(stream.duration, int):
+                count = int(stream.duration * base * rate)
+                return count, frame.height, frame.width
+
+            # fallback to less accurate container duration estimate
+            cduration = container.duration
+            assert isinstance(cduration, int)
+            assert isinstance(av.time_base, int)
+            count = int(cduration / av.time_base * rate)
+            return count, frame.height, frame.width
 
     @property
     def format(self) -> str:
@@ -88,7 +111,7 @@ class VideoReader(mixins.ReprMixin):
         This property assumes an even spacing of the keyframes which is
         generally True in streaming videos used in scientific applications.
         """
-        
+
         sid = self.stream_id
         with av.open(self.path) as container:
             container.streams.video[sid].thread_type = 'AUTO'
@@ -131,13 +154,11 @@ class VideoReader(mixins.ReprMixin):
 
         return None
 
-    # type checking disabled here as pyav allows None types that disrupt keyseek
-    @typing.no_type_check
     def keyseek(
         self,
         index: int | Sequence[int],
         **kwargs,
-    ) -> list[int, npt.NDArray]:
+    ) -> list[tuple[int, npt.NDArray]]:
         """Returns the closest keyframe preceding each indexed frame.
 
         This method assumes that the spacing of the keyframes is constant. This
@@ -174,6 +195,9 @@ class VideoReader(mixins.ReprMixin):
             base = vstream.time_base
             rate = vstream.average_rate
             start = vstream.start_time
+            assert isinstance(base, Fraction)
+            assert isinstance(rate, Fraction)
+            assert isinstance(start, int)
             for key_idx in key_indices:
 
                 # seek to presentation time = sec / base
@@ -182,8 +206,7 @@ class VideoReader(mixins.ReprMixin):
 
                 frame = next(container.decode(video=self.stream_id))
                 img = self.formatter(frame)
-                index = round(frame.pts * base * rate)
-                result.append((index, img))
+                result.append((key_idx, img))
 
         return result
 
@@ -201,43 +224,3 @@ class VideoReader(mixins.ReprMixin):
         """Returns the number of frames in this VideoReader."""
 
         return self.shape[0]
-
-
-class WebmReader(VideoReader):
-    """An iterable video stream reader of webm video files.
-
-    This reader provides simple iteration of the frames in the container's video
-    stream and random access to keyframes.
-
-    Attributes:
-        path:
-            The path to the video.
-        stream_id:
-            The integer id of the video stream to read.
-        convert:
-            The color format each frame will be converted to.
-    """
-
-    @property
-    def shape(self):
-        """Returns a shape tuple containing the estimated number of frames,
-        height and width of data in this VideoReader.
-
-        The frame number is estimated from the duration and sample rate since
-        webm does not reliably store the number of frames to the metadata. This
-        means the frame number can be off from the actual number of frames.
-        """
-
-        with av.open(self.path) as container:
-            stream = container.streams.video[self.stream_id]
-            frame = next(container.decode(video=self.stream_id))
-            try:
-                # try more accurate stream counting
-                duration = stream.duration * stream.time_base
-                count = int(duration * stream.average_rate)
-            except TypeError:
-                # if stream duration is missing fallback to container meta
-                duration = container.duration
-                count = int(duration / av.time_base * self.sample_rate)
-
-        return int(count), frame.height, frame.width

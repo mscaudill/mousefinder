@@ -1,29 +1,32 @@
-"""A collection of pyav frame instance reformatters for converting frames to
+"""A collection of pyav VideoFrame instance reformatters for converting VideoFrames to
 numpy arrays.
 
-PYAV provides a method called 'to_ndarray' for frame reformatting. However, this
+PYAV provides a method called 'to_ndarray' for VideoFrame reformatting. However, this
 method can be slow if converting between pixel formats or changing the size of
 the arrays since a reformatter is called. These functions bypass the
 reformatter and hence have more limited capabilities but greater speed.
 """
 
-from typing import Protocol
+import typing
 
 import numpy as np
 import numpy.typing as npt
-from av.frame import Frame
+from av.video.frame import VideoFrame  # pylint: disable=no-name-in-module
 
 
 # protocols are not part of public API
 # pylint: disable-next = too-few-public-methods
-class Formatter(Protocol):
-    """Protocol for functions that convert pyav Frames to 2D np.uint8 arrays."""
+class Formatter(typing.Protocol):
+    """Protocol for functions that convert pyav VideoFrames to 2D np.uint8 arrays."""
 
-    def __call__(self, frame: Frame, *args, **kwargs) -> npt.NDArray: ...
+    def __call__(self, frame: VideoFrame, *args, **kwargs) -> npt.NDArray: ...
 
 
-def from_yuvj420p(frame: Frame) -> npt.NDArray[np.uint8]:
-    """Converts yuvj420p planar format frames to a 8-bit grayscale array.
+# the pyav frame.to_ndarray return type is broad but yuvj420p stores 8-bit
+# for read speed we need to ignore rather than narrow types here
+@typing.no_type_check
+def from_yuvj420p(frame: VideoFrame) -> npt.NDArray[np.uint8]:
+    """Converts yuvj420p planar format VideoFrames to a 8-bit grayscale array.
 
     The YUV planar formats store the grayscale value in the Y luminance plane.
     This plane can represent pixels as full-swing (0-255) or limited (16-235).
@@ -37,7 +40,7 @@ def from_yuvj420p(frame: Frame) -> npt.NDArray[np.uint8]:
 
     Args:
         frame:
-            A pyav frame instance.
+            A pyav VideoFrame instance.
 
     Returns:
         A 2-D numpy array of 8-bit unsigned integers that may be in the range
@@ -50,8 +53,11 @@ def from_yuvj420p(frame: Frame) -> npt.NDArray[np.uint8]:
 
     return img
 
-def from_yuv420p(frame: Frame) -> npt.NDArray[np.uint8]:
-    """Converts a limited range yuv420p frame to a full-swing 8-bit grayscale
+# the pyav frame.to_ndarray return type is broad but yuvj420p stores 8-bit
+# for read speed we need to ignore rather than narrow types here
+@typing.no_type_check
+def from_yuv420p(frame: VideoFrame) -> npt.NDArray[np.uint8]:
+    """Converts a limited range yuv420p VideoFrame to a full-swing 8-bit grayscale
     image.
 
     The yuv420p format is ambiguous about the range of the pixels since modern
@@ -62,7 +68,7 @@ def from_yuv420p(frame: Frame) -> npt.NDArray[np.uint8]:
 
     Args:
         frame:
-            A pyav frame instance.
+            A pyav VideoFrame instance.
 
     Returns:
         A 2-D numpy array of 8-bit unsigned integers rescaled to be in the range

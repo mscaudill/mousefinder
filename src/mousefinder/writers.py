@@ -1,14 +1,14 @@
-""" """
+"""A matplotlib based writer of image and coordinate data."""
 
 from collections.abc import Iterator
-from itertools import islice
 from functools import partial
+from itertools import islice
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-from matplotlib import animation
 import numpy as np
 import numpy.typing as npt
+from matplotlib import animation
 
 from mousefinder.core import mixins
 from mousefinder.readers import VideoReader
@@ -21,13 +21,12 @@ class MPLWriter(mixins.ReprMixin):
         reader:
             An iterable VideoReader instance.
         coords:
-            A 3D array of shape (rois, 2, frames) of coordinates in row, column
-            format along axis 1.
+            An array of row, column coordinates of shape frames x 2.
         indices:
             A range instance of the frames to write.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-positional-arguments
         self,
         reader: VideoReader,
         coords: npt.NDArray | None,
@@ -45,7 +44,7 @@ class MPLWriter(mixins.ReprMixin):
             reader:
                 An iterable VideoReader instance.
             coords:
-                A rois x 2 x frames array of coordinates in row, col format. May
+                A frames x 2 array of coordinates in row, col format. May
                 be None if no coordinate data to be drawn.
             indices:
                 A range instance of the frames to write or None. If None, all
@@ -70,7 +69,7 @@ class MPLWriter(mixins.ReprMixin):
         """
 
         self.reader = reader
-        self.coords = np.full((1,2,1), np.nan) if coords is None else coords
+        self.coords = np.full((1, 2, 1), np.nan) if coords is None else coords
         self.indices = range(len(self.reader) - 1) if not indices else indices
         self.show_frame = show_frame
         self.label = label
@@ -164,7 +163,7 @@ class MPLWriter(mixins.ReprMixin):
         if self.label:
             self._legend.get_texts()[0].set_text(f'Frame {idx}')
 
-    def preview(self, fps: int | None = None, repeat: bool = True):
+    def preview(self, fps: float | None = None, repeat: bool = True):
         """Opens an animation that displays the data and coordinates to be
         written.
 
@@ -175,21 +174,25 @@ class MPLWriter(mixins.ReprMixin):
         """
 
         func = partial(self._update, verbose=False)
-        fps = self.reader.sample_rate if not fps else fps
+        fps = self.reader.sample_rate if fps is None else fps
         interval = int(1 / fps * 1000)
+        # pylint: disable-next=attribute-defined-outside-init
         self.ani = animation.FuncAnimation(
-                self._fig,
-                func,
-                frames=self._data,
-                interval=interval,
-                blit=False,
-                repeat=repeat,
-                cache_frame_data=False,
+            self._fig,
+            func,
+            frames=self._data,
+            interval=interval,
+            blit=False,
+            repeat=repeat,
+            cache_frame_data=False,
         )
         plt.show()
 
-    def write(self, path: Path | str | None = None, fps: int = None):
-        """Writes this Writer's frame and coordinates to a new mp4 video file.
+    def write(self, path: Path | str | None = None, fps: float | None = None):
+        """Writes this Writer's frame and coordinates to a new video file.
+
+        The extension of the path determines the format of the video; .mp4,
+        .gif, .webm, etc.
 
         Args:
             path:
@@ -201,21 +204,22 @@ class MPLWriter(mixins.ReprMixin):
         """
 
         if path is None:
-            name = reader.path.stem + '_tracking'
-            path = reader.path.with_name(name).with_suffix('.mp4')
+            name = self.reader.path.stem + '_tracking'
+            path = self.reader.path.with_name(name).with_suffix('.mp4')
 
         print(f'Writing video to: {path}')
 
         func = partial(self._update, verbose=True)
         fps = self.reader.sample_rate if not fps else fps
         interval = int(1 / fps * 1000)
+        # pylint: disable-next=attribute-defined-outside-init
         self.ani = animation.FuncAnimation(
-                self._fig,
-                func,
-                frames=self._data,
-                interval=interval,
-                blit=False,
-                repeat=False,
-                cache_frame_data=False,
+            self._fig,
+            func,
+            frames=self._data,
+            interval=interval,
+            blit=False,
+            repeat=False,
+            cache_frame_data=False,
         )
         self.ani.save(path)

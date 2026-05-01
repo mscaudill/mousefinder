@@ -1,7 +1,7 @@
-"""A Region of Interest storing the row and column slices of an image where
+"""A Region of Interest storing the row and column slices of images where
 mouse detection will occur."""
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Self
 
 import matplotlib.pyplot as plt
@@ -15,14 +15,12 @@ from mousefinder import configurations as configs
 from mousefinder import readers
 
 
-
 class ROI:
     """A region of interest for mouse position detection.
 
     Attrs:
         region:
-            A 2-tuple of row and column slice instances that span the image
-            pixels containing the roi.
+            A 2-tuple of row and column slice instances.
         scale:
             The pixels per cm conversion.
     """
@@ -45,13 +43,12 @@ class ROI:
         self.scale = scale
 
     def as_mask(self, inscribed='circle') -> npt.NDArray[np.bool_]:
-        """Returns a boolean image of this ROI in which pixels within inscribed
-        are True and False otherwise.
+        """Returns a boolean image of this ROI.
 
         Args:
             inscribed:
-                A string shape of the region to inscribe inside this ROI's
-                region where the mask will be True.
+                A string shape name in {circle, square or rectangle} descrbing
+                the shape to inscribe in the ROI with True values.
 
         Returns:
             A boolean image of the same shape as this ROI's region.
@@ -85,7 +82,7 @@ class ROI:
 
         Args:
             img:
-                A 2-D numpy array image of a plate to draw ROIs on top of.
+                A 2-D numpy array image to draw this ROI on top of.
             ax:
                 A matplotlib axis instance. If None, a new axis, and figure, are
                 created.
@@ -112,17 +109,18 @@ class ROI:
         plt.show()
 
     @classmethod
-    def from_PCG(
+    def from_PCG(  # pylint: disable=invalid-name, too-many-positional-arguments
         cls,
         reader: readers.VideoReader,
         config: configs.Configuration,
         frames: Sequence[int] = (0, 1000),
         filt=filters.sobel,
         size: int = 10,
-        thresholder=filters.threshold_li,
+        thresholder: Callable[[npt.NDArray], float] = filters.threshold_li,
         **kwargs,
     ) -> Self:
-        """Returns the circular region of interest of this chamber.
+        """Returns the region of interest for a Pinnacle circular gravel
+        bottomed chamber.
 
         Args:
             path:
@@ -134,18 +132,19 @@ class ROI:
                 unlikely to be in the same position in each frame. Defaults to
                 the first and 1000-th frames.
             filt:
-                An edge detection filter function consisting of two kernels for
-                estimating the vertical and horizontal gradients.
+                An edge detection filter function from ndimage or skimage
+                libraries. Defaults to a sobel filter.
             size:
-                The size of the kernel for smoothing away the dark spots in the
-                gravel of the chamber and the electrode wires.
+                The size of scipy's maximum_filter kernel in pixels for removing
+                the gravel bed texture and possible electrode wires. This size
+                should be smaller than the mouse but larger than the variations
+                in the gravel bed. The default is 10 pixels.
             thresholder:
-                Am skimage thresholding function for separating the mouse from
-                the background.
+                A callable expected to accept an image and return a float
+                threshold that segments the chambers bottom. This defaults to
+                skimage's threshold_li function.
             kwargs:
-                An optional 'size' may be passed for roi detection that will
-                supersede this configuration's size attribute and any
-                valid kwarg for the thresholder function.
+                Keyword args are passed to thresholder function.
 
         Returns:
             An ROI instance.

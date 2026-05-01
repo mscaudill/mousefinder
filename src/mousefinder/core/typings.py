@@ -1,9 +1,13 @@
 """A collection of protocols and custom types."""
 
-from typing import protocol
+from typing import Protocol
+
+import numpy as np
+import numpy.typing as npt
 
 # protocols are not part of public API
 # pylint: disable = too-few-public-methods
+
 
 class ImgThreshold(Protocol):
     """Protocol determining scalar float thresholds from 2D images."""
@@ -15,6 +19,7 @@ class ImgThreshold(Protocol):
         **kwargs,
     ) -> np.float64: ...
 
+
 class ImgFilter(Protocol):
     """Protocol for functions that filter images."""
 
@@ -24,4 +29,3 @@ class ImgFilter(Protocol):
         *args,
         **kwargs,
     ) -> npt.NDArray[np.float64]: ...
-

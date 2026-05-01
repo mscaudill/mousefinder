@@ -13,7 +13,6 @@ import reprlib
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -82,7 +81,7 @@ class ReprMixin:
         return '\n'.join(msg)
 
 
-#pylint: disable-next=too-few-public-methods
+# pylint: disable-next=too-few-public-methods
 class SavingMixin:
     """A mixin for saving metadata and coordinate data from a detector to
     a pickle.
@@ -92,7 +91,7 @@ class SavingMixin:
         - path:
             The video file path from which coords were detected.
         - timestamp:
-            The acquistion start datetime of the video at path.
+            The acquisition start datetime of the video at path.
         - sample_rate:
             The sample rate of the video at path.
         - scale:
@@ -113,18 +112,21 @@ class SavingMixin:
         coordinates: npt.NDArray[np.float64],
         *,
         path: Path | str,
-        timestamp: datetime,
+        timestamp: datetime | None,
         sample_rate: float,
-        scale: float,
+        scale: tuple[float, float],
         model: str,
         **kwargs,
     ) -> None:
         """Saves the metadata and coordinate data of a detection model to
         a pickle file at destination."""
 
+        # pylint: disable=unused-argument
         # locals to get dict of all parameters
         data = locals()
-        _, _, kwargs = [data.pop(el) for el in ('self', 'destination', 'kwargs')]
+        _, _, kwargs = [
+            data.pop(el) for el in ('self', 'destination', 'kwargs')
+        ]
         data.update(kwargs)
 
         t0 = time.perf_counter()
@@ -138,7 +140,7 @@ class SavingMixin:
         print(f'Saved to {aRepr.repr(target)} in {tf - t0} secs.')
 
 
-#pylint: disable-next=too-few-public-methods
+# pylint: disable-next=too-few-public-methods
 class PrintMixin:
     """A mixin for generic printing of messages to stdout."""
 
