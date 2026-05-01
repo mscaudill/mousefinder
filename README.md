@@ -479,9 +479,9 @@ We're excited you want to contribute! Please check out our
 
 **This work has been generously supported by the folowing:**
 
-|Agency| Number|
-|--------------|
-|NIH NINDS | 2R01NS100738-08A1 |
+|Agency    | Title |
+|--------- |-------|
+|NIH NINDS | 2R01NS100738-08A1 | 
 |Private   | Ting Tsung and Wei Fong Chao Foundation at the Jan and Dan Duncan
 Neurological Research Institute at Texas Children's| 
 
