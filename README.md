@@ -55,37 +55,34 @@
 ## Usage
 MouseFinder has  5 datatypes; `VideoReader`, `Configuration`, `ROI`, `Model` and
 `MPLWriter` that work together to support animal tracking. This usage guide
-will explore each.
+will explore the first four.
 
 - [Reading Data](#Reading-Data)
 - [Chamber Configurations](#Chamber-Configurations)
 - [Defining an ROI](#Defining-an-ROI)
 - [Tracking with Models](#Tracking-with-Models)
-- [Viewing Tracking Results](#Viewing-Tracking-Results)
 
 ### Reading Data
 
 MouseFinder's VideoReader is an iterable reader of the frames in the video that
 yields indexed numpy arrays and stores important metadata like the frame rate.
-Below we open a webm video file. The WebmReader is a VideoReader type specific
-to webm files. If you have an mpg or mp4 you can use the VideoReader in place of
-the WebmReader.
+Below we open a webm video file with this VideoReader.
 
 Let's build a reader...
 
 ```python
-from mousefinder.readers import VideoReader, WebmReader
+from mousefinder.readers import VideoReader
 
 # use your video path
 path = '/media/matt/compute/PAC_Data/5895_Right.webm'
-reader = WebmReader(path)
+reader = VideoReader(path)
 
 print(reader)
 ```
 
 *Output*
 ```
-WebmReader
+VideoReader
 --- Attributes ---
 path: PosixPath('/m...S_video.webm')
 stream_id: 0
@@ -214,12 +211,13 @@ from_PCG(
     reader: mousefinder.readers.VideoReader,
     config: mousefinder.configurations.Configuration,
     frames: collections.abc.Sequence[int] = (0, 1000),
-    filt=<function sobel at 0x7f7c2e6bc040>,
+    filt=<function sobel at 0x7f9b2016c860>,
     size: int = 10,
-    thresholder=<function threshold_li at 0x7f7c2e6bf1a0>,
+    thresholder: collections.abc.Callable[[numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[~_ScalarT]]], float] = <function threshold_li at 0x7f9b2016f9c0>,
     **kwargs
 ) -> Self class method of mousefinder.rois.ROI
-    Returns the circular region of interest of this chamber.
+    Returns the region of interest for a Pinnacle circular gravel
+    bottomed chamber.
 
     Args:
         path:
@@ -229,20 +227,21 @@ from_PCG(
             taken as the background image (i.e. no mouse present). These
             frames should be separated by enough time so that the mouse is
             unlikely to be in the same position in each frame. Defaults to
-            the first and 1000-th frame of the video.
+            the first and 1000-th frames.
         filt:
-            An edge detection filter function consisting of two kernels for
-            estimating the vertical and horizontal gradients.
+            An edge detection filter function from ndimage or skimage
+            libraries. Defaults to a sobel filter.
         size:
-            The size of the kernel for smoothing away the dark spots in the
-            gravel of the chamber and the electrode wires.
+            The size of scipy's maximum_filter kernel in pixels for removing
+            the gravel bed texture and possible electrode wires. This size
+            should be smaller than the mouse but larger than the variations
+            in the gravel bed. The default is 10 pixels.
         thresholder:
-            Am skimage thresholding function for separating the mouse from
-            the background.
+            A callable expected to accept an image and return a float
+            threshold that segments the chambers bottom. This defaults to
+            skimage's threshold_li function.
         kwargs:
-            An optional 'size' may be passed for roi detection that will
-            supersede this configuration's size attribute and any
-            valid kwarg for the thresholder function.
+            Keyword args are passed to thresholder function.
 
     Returns:
         An ROI instance.
@@ -252,12 +251,12 @@ The helper tells us we need to supply a reader and a configuration and this
 method will take care of constructing an ROI for us.
 
 ```python
-from mousefinder.readers import WebmReader
+from mousefinder.readers import VideoReader
 from mousefinder.configurations import PCGC
 from mousefinder.rois import ROI
 
 path = '/media/matt/compute/PAC_Data/5895_Right_group B-S_video.webm'
-reader = WebmReader(path)
+reader = VideoReader(path)
 roi = ROI.from_PCG(reader, config=PCGC())
 
 # plot the roi using the first image of the video
@@ -293,9 +292,10 @@ print(model)
 ```
 PCGTop
 --- Attributes ---
-reader: WebmReader(pa...7c40>) -> None
-roi: <mousefinder....x7f213ad17620>
+reader: VideoReader(p...3e20>) -> None
+roi: <mousefinder....x7f9b133f5940>
 configuration: PCGC(name='Pi...=24, width=24)
+sigma_: None
 threshold_: None
 --- Properties ---
 
@@ -320,30 +320,33 @@ help(model.estimate)
 ```
 estimate(
     sigma: int | None = None,
-    thresholder=<function threshold_li at 0x7fbfe1beda80>
+    thresholder: collections.abc.Callable[[numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[~_ScalarT]]], float] = <function threshold_li at 0x7f9b2016f9c0>,
+    **kwargs
 ) -> None method of mousefinder.models.PCGTop instance
-    Estimates the integer threshold that best distinguishes the mouse
-    from the background.
+    Estimates the float threshold that best distinguishes the mouse
+    from the background from an illumniation normalized image.
 
     The threshold computed by this method is the threshold after adjusting
     for light intensity changes by gaussian blur correction.
 
     Args:
         sigma:
-            The standard deviation of the gaussian for correcting the light
-            intensity changes across the image. If None, this value defaults
-            to 1/20 the height of the image.
+            The standard deviation of the gaussian for correcting the uneven
+            illumination. If None, this value defaults to 1/20 the height of
+            the image.
         thresholder:
             A callable thresholding function that accepts an image and
             returns a integer or float value. The default is the
             threshold_li function from the skimage library.
+        kwargs:
+            All keyword arguments are passed to the thresholder.
 
     Returns:
         None
 ```
 
-This function computes a threshold on images that have been adjusted for
-light-intensity changes. You can see these light variations in the sample gif
+This function computes a threshold on images that have been normalized to
+account for uneven illumination. You can see these light variations in the sample gif
 video at the top of this page. Lets call the estimate method using the default
 sigma
 
@@ -366,25 +369,22 @@ help(model.detect)
 ```
 detect(
     *,
-    size: int = 10,
+    minsize: int = 10,
     path: pathlib._local.Path | str | None = None,
     ncores: int | None = None,
     chunksize: int = 100,
     verbose: bool = True,
     saving: bool = True
-) -> numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[~_ScalarT]]
-    
+) -> numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[~_ScalarT]] method of mousefinder.models.PCGTop instance
     Concurrently detects mouse coordinates from each frame of this
     Detector's data.
 
     Args:
-        size:
-            The number of pixel standard deviations used in gaussian
-            blurring to reduce discontinuities in the pixel values of the
-            frame. This value should be large enough to smooth neighboring
-            dark values in the gravel bed while being small enough to not
-            blur the mouse position unreasonably. For the PCGC
-            configuration, the default value is 10 pixel smoothing.
+        minsize:
+            The minimum size in pixels along rows and columns that objects
+            within the images must achieve to be included in the
+            segmentation. Objects below minsize x minsize pixels are
+            excluded from detection. The default is 10 pixels.
         path:
             A path or string to a dir where the coordinates will be saved
             to. If None, the coordinates will be saved to the same directory
@@ -409,8 +409,38 @@ detect(
 
     Returns:
         An ndarray of shape (n, 2) containing the float row and
-        column coordinates for each of the n frames of this Model's reader
+        column coordinates for each of the n frames of this Model's reader.
 ```
 
 This is the model's action method. It will use the threshold and locate the
-mouse on each frame using as many cores as you allow.
+mouse on each frame using as many cores as you allow. Lets call it...
+
+```python
+coords = model.detect(ncores=8)
+```
+
+At this point, depending on how many frames are in the video, you should get
+a cup of coffee or tea. For 100k frames this will take about 10 minutes. When
+you come back you'll have your coordinates saved and returned to your current
+namespace. If you want to plot the results check out the MPLWriter in the writer
+module of MouseFinder.
+
+## Dependencies
+
+MouseFinder's [pyproject.toml](#https://github.com/mscaudill/mousefinder/blob/master/pyproject.toml)
+contains all the dependencies for using or developing MouseFinder. These are the
+minimum requirements.
+
+| Dependencies  |
+|---------------|
+| Python >= 3.13|
+| numpy         |
+| scipy         |
+| scikit-image  |
+| matplotlib    |
+| ffmpeg        |
+| av            |
+| psutil        |
+
+## Installation
+

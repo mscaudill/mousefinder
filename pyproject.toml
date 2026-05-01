@@ -84,7 +84,7 @@ push = true
     'current_version = "{version}"',
     'version = "{version}"'
 ]
-"src/flyfinder/__init__.py" = ['__version__ = "{version}"']
+"src/mousefinder/__init__.py" = ['__version__ = "{version}"']
 
 
 # mypy configuration
@@ -93,8 +93,6 @@ python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 exclude = ['sandbox/.*']
-
-[[tool.mypy.overrides]]
 # 3rd party's without annotations
 ignore_missing_imports = true
 
@@ -126,5 +124,6 @@ after-context = 3
 quiet-level = 3
 
 [tool.black]
+target-version = ['py313']
 line-length = 80
 skip-string-normalization = true
